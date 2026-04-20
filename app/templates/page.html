@@ -41,7 +41,7 @@
             {% if items %}
             <div class="border border-neutral-200 rounded-lg overflow-hidden">
                 {% for item in items %}
-                <a href="{{ item.url }}" class="flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 {% if not loop.last %}border-b border-neutral-100{% endif %}">
+                <a href="{{ item.url }}" class="flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors duration-150 anim-card {% if not loop.last %}border-b border-neutral-100{% endif %}" style="animation-delay: {{ loop.index0 * 40 }}ms">
                     {% if item.icon %}
                     <div class="w-8 h-8 rounded-lg bg-gradient-to-br {{ item.icon_bg | default('from-neutral-200 to-neutral-300') }} flex items-center justify-center shrink-0">
                         <span class="text-white text-xs font-bold">{{ item.icon }}</span>
@@ -65,7 +65,7 @@
             {% elif issues %}
             <div class="border border-neutral-200 rounded-lg overflow-hidden">
                 {% for issue in issues %}
-                <div class="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 cursor-pointer {% if not loop.last %}border-b border-neutral-100{% endif %}"
+                <div class="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 cursor-pointer transition-colors duration-150 anim-card {% if not loop.last %}border-b border-neutral-100{% endif %}" style="animation-delay: {{ loop.index0 * 30 }}ms"
                      onclick="window.location.href='{{ board_url }}'">
                     <span class="text-2xs text-muted font-mono w-14 shrink-0">{{ issue.project.prefix }}-{{ issue.number }}</span>
                     {% set prio_icons = {'urgent':'🔴','high':'🟠','medium':'🟡','low':'🔵','none':'⚪'} %}

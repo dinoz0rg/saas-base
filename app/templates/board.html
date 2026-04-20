@@ -191,8 +191,8 @@
 
         <!-- Hidden columns summary -->
         <div class="w-64 shrink-0 p-4" id="hidden-columns-panel">
-            <div class="flex items-center gap-1.5 mb-3 cursor-pointer" onclick="document.getElementById('hidden-list').classList.toggle('hidden')">
-                <svg class="w-3 h-3 text-muted transition-transform" id="hidden-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <div class="flex items-center gap-1.5 mb-3 cursor-pointer" onclick="toggleHiddenList()">
+                <svg class="w-3 h-3 text-muted transition-transform duration-200" id="hidden-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
                 </svg>
                 <span class="text-xs font-medium text-neutral-600">Hidden columns</span>
@@ -204,7 +204,7 @@
                 ("duplicate", "Duplicate", "bg-neutral-400", "⊘"),
             ] %}
 
-            <div class="space-y-1" id="hidden-list">
+            <div class="space-y-1 transition-all duration-200 ease-out" id="hidden-list">
                 {% for status_key, status_label, badge_color, icon in hidden_statuses %}
                 <div class="flex items-center justify-between py-2 px-2 rounded-md hover:bg-neutral-50 group cursor-pointer"
                      onclick="toggleHiddenColumn('{{ status_key }}')">
@@ -220,7 +220,7 @@
                     </div>
                 </div>
                 <!-- Expanded issue list for hidden column -->
-                <div id="hidden-expanded-{{ status_key }}" class="hidden ml-6 space-y-1 pb-2"></div>
+                <div id="hidden-expanded-{{ status_key }}" class="hidden ml-6 space-y-1 pb-2 overflow-hidden"></div>
                 {% endfor %}
             </div>
         </div>
@@ -229,8 +229,8 @@
 
 <!-- Create Issue Modal -->
 <div id="create-modal" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-black/30" onclick="closeCreateModal()"></div>
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl w-[520px] max-h-[80vh] overflow-hidden">
+    <div class="absolute inset-0 bg-black/30 modal-backdrop" onclick="closeCreateModal()"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl w-[520px] max-h-[80vh] overflow-hidden modal-content">
         <form id="create-form" onsubmit="submitCreateIssue(event)">
             <div class="px-5 pt-5 pb-3">
                 <h3 class="text-sm font-semibold text-neutral-800 mb-4">New issue</h3>
@@ -281,8 +281,8 @@
 
 <!-- Issue Detail Slide-over -->
 <div id="detail-panel" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-black/20" onclick="closeDetailPanel()"></div>
-    <div class="absolute right-0 top-0 bottom-0 w-[560px] bg-white shadow-2xl border-l border-neutral-200 flex flex-col overflow-hidden">
+    <div class="absolute inset-0 bg-black/20 panel-backdrop" onclick="closeDetailPanel()"></div>
+    <div class="absolute right-0 top-0 bottom-0 w-[560px] bg-white shadow-2xl border-l border-neutral-200 flex flex-col overflow-hidden panel-content">
         <div class="flex items-center justify-between px-5 py-3 border-b border-neutral-100">
             <span class="text-2xs text-muted font-medium" id="detail-identifier"></span>
             <div class="flex items-center gap-1">
@@ -345,8 +345,8 @@
 
 <!-- Search Modal -->
 <div id="search-modal" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-black/30" onclick="closeSearchModal()"></div>
-    <div class="absolute top-[20%] left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-2xl w-[520px] overflow-hidden">
+    <div class="absolute inset-0 bg-black/30 search-backdrop" onclick="closeSearchModal()"></div>
+    <div class="absolute top-[20%] left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-2xl w-[520px] overflow-hidden search-content">
         <div class="flex items-center gap-3 px-4 py-3 border-b border-neutral-100">
             <svg class="w-4 h-4 text-neutral-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -373,12 +373,54 @@ const BOARD_URL = "/{{ workspace.slug }}/{{ project.prefix }}/board";
 let currentIssueId = null;
 let allLabels = [];
 
+// --- Animated overlay helpers ---
+function animateOpen(wrapper, backdropCls, contentCls) {
+    wrapper.classList.remove('hidden');
+    const backdrop = wrapper.querySelector(backdropCls);
+    const content = wrapper.querySelector(contentCls);
+    if (backdrop) { backdrop.classList.remove('anim-backdrop-out'); backdrop.classList.add('anim-backdrop-in'); }
+    if (content) { content.className = content.className.replace(/anim-\S+-out/g, ''); }
+    return { backdrop, content };
+}
+function animateClose(wrapper, backdropCls, contentCls, outClass) {
+    if (wrapper.classList.contains('hidden')) return;
+    const backdrop = wrapper.querySelector(backdropCls);
+    const content = wrapper.querySelector(contentCls);
+    if (backdrop) { backdrop.classList.remove('anim-backdrop-in'); backdrop.classList.add('anim-backdrop-out'); }
+    if (content) { content.classList.add(outClass); }
+    const duration = 200;
+    setTimeout(() => {
+        wrapper.classList.add('hidden');
+        if (backdrop) backdrop.classList.remove('anim-backdrop-out');
+        if (content) content.classList.remove(outClass);
+    }, duration);
+}
+
+// --- Dropdown animation helpers ---
+function animateDropdownOpen(menu) {
+    menu.classList.remove('hidden', 'anim-dropdown-out');
+    menu.classList.add('anim-dropdown-in');
+}
+function animateDropdownClose(menu) {
+    if (menu.classList.contains('hidden')) return;
+    menu.classList.remove('anim-dropdown-in');
+    menu.classList.add('anim-dropdown-out');
+    setTimeout(() => { menu.classList.add('hidden'); menu.classList.remove('anim-dropdown-out'); }, 120);
+}
+
 // --- Toast ---
+let toastTimer;
 function showToast(msg) {
     const t = document.getElementById('toast');
     t.querySelector('div').textContent = msg;
-    t.classList.remove('hidden');
-    setTimeout(() => t.classList.add('hidden'), 2000);
+    clearTimeout(toastTimer);
+    t.classList.remove('hidden', 'anim-toast-out');
+    t.classList.add('anim-toast-in');
+    toastTimer = setTimeout(() => {
+        t.classList.remove('anim-toast-in');
+        t.classList.add('anim-toast-out');
+        setTimeout(() => { t.classList.add('hidden'); t.classList.remove('anim-toast-out'); }, 200);
+    }, 2000);
 }
 
 // --- Fetch helpers ---
@@ -419,9 +461,13 @@ function openCreateModal(status) {
     form.reset();
     form.querySelector('[name=status]').value = status || 'backlog';
     renderLabelCheckboxes(document.getElementById('create-labels-container'));
-    modal.classList.remove('hidden');
+    const { content } = animateOpen(modal, '.modal-backdrop', '.modal-content');
+    if (content) content.classList.add('anim-modal-in');
 }
-function closeCreateModal() { document.getElementById('create-modal').classList.add('hidden'); }
+function closeCreateModal() {
+    const modal = document.getElementById('create-modal');
+    animateClose(modal, '.modal-backdrop', '.modal-content', 'anim-modal-out');
+}
 
 async function submitCreateIssue(e) {
     e.preventDefault();
@@ -464,11 +510,14 @@ async function openIssueDetail(issueId) {
                 updateCurrentIssue({ label_ids: ids });
             });
         });
-        document.getElementById('detail-panel').classList.remove('hidden');
+        const panel = document.getElementById('detail-panel');
+        const { content } = animateOpen(panel, '.panel-backdrop', '.panel-content');
+        if (content) content.classList.add('anim-slide-in');
     } catch (err) { showToast('Error loading issue'); }
 }
 function closeDetailPanel() {
-    document.getElementById('detail-panel').classList.add('hidden');
+    const panel = document.getElementById('detail-panel');
+    animateClose(panel, '.panel-backdrop', '.panel-content', 'anim-slide-out');
     currentIssueId = null;
 }
 
@@ -500,36 +549,37 @@ document.addEventListener('dragstart', (e) => {
     const card = e.target.closest('.issue-card');
     if (!card) return;
     draggedCard = card;
-    card.style.opacity = '0.5';
+    card.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', card.dataset.issueId);
 });
 
 document.addEventListener('dragend', (e) => {
-    if (draggedCard) draggedCard.style.opacity = '1';
+    if (draggedCard) draggedCard.classList.remove('dragging');
     draggedCard = null;
-    document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('bg-blue-50'));
+    document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('drag-over'));
 });
 
 document.querySelectorAll('.drop-zone').forEach(zone => {
     zone.addEventListener('dragover', (e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-        zone.classList.add('bg-blue-50');
+        zone.classList.add('drag-over');
     });
     zone.addEventListener('dragleave', () => {
-        zone.classList.remove('bg-blue-50');
+        zone.classList.remove('drag-over');
     });
     zone.addEventListener('drop', async (e) => {
         e.preventDefault();
-        zone.classList.remove('bg-blue-50');
+        zone.classList.remove('drag-over');
         const issueId = e.dataTransfer.getData('text/plain');
         const newStatus = zone.dataset.status;
         if (!issueId || !newStatus) return;
         // Optimistic UI: move card
         if (draggedCard) {
+            draggedCard.classList.remove('dragging');
+            draggedCard.classList.add('anim-card');
             zone.appendChild(draggedCard);
-            draggedCard.style.opacity = '1';
         }
         try {
             await api(`/api/issues/${issueId}`, { method: 'PATCH', body: { status: newStatus } });
@@ -544,12 +594,17 @@ document.querySelectorAll('.drop-zone').forEach(zone => {
 
 // --- Search ---
 function openSearchModal() {
-    document.getElementById('search-modal').classList.remove('hidden');
+    const modal = document.getElementById('search-modal');
+    const { content } = animateOpen(modal, '.search-backdrop', '.search-content');
+    if (content) content.classList.add('anim-search-in');
     document.getElementById('search-input').value = '';
     document.getElementById('search-input').focus();
     document.getElementById('search-results').innerHTML = '<div class="px-4 py-8 text-center text-sm text-neutral-400">Type to search issues...</div>';
 }
-function closeSearchModal() { document.getElementById('search-modal').classList.add('hidden'); }
+function closeSearchModal() {
+    const modal = document.getElementById('search-modal');
+    animateClose(modal, '.search-backdrop', '.search-content', 'anim-search-out');
+}
 
 let searchTimeout;
 function handleSearch(query) {
@@ -600,15 +655,19 @@ function setViewTab(tab) {
 // --- Display Menu ---
 function toggleDisplayMenu() {
     const m = document.getElementById('display-menu');
-    m.classList.toggle('hidden');
-    document.getElementById('filter-menu').classList.add('hidden');
+    if (m.classList.contains('hidden')) {
+        animateDropdownOpen(m);
+    } else {
+        animateDropdownClose(m);
+    }
+    animateDropdownClose(document.getElementById('filter-menu'));
     closeAllColMenus();
 }
 function setGrouping(group) {
     document.querySelectorAll('.group-opt span').forEach(s => s.classList.add('hidden'));
     document.querySelector(`.group-opt[data-group="${group}"] span`).classList.remove('hidden');
     showToast('Grouped by ' + group);
-    document.getElementById('display-menu').classList.add('hidden');
+    animateDropdownClose(document.getElementById('display-menu'));
 }
 function toggleLabels(show) {
     document.querySelectorAll('.issue-card .card-labels').forEach(el => el.style.display = show ? '' : 'none');
@@ -621,8 +680,12 @@ function toggleAssignees(show) {
 let activeFilters = {};
 function toggleFilterMenu() {
     const m = document.getElementById('filter-menu');
-    m.classList.toggle('hidden');
-    document.getElementById('display-menu').classList.add('hidden');
+    if (m.classList.contains('hidden')) {
+        animateDropdownOpen(m);
+    } else {
+        animateDropdownClose(m);
+    }
+    animateDropdownClose(document.getElementById('display-menu'));
     closeAllColMenus();
     // Render label filters
     const container = document.getElementById('filter-labels-list');
@@ -638,7 +701,7 @@ function toggleFilterMenu() {
 }
 function applyFilter(type, value) {
     activeFilters[type] = value;
-    document.getElementById('filter-menu').classList.add('hidden');
+    animateDropdownClose(document.getElementById('filter-menu'));
     renderActiveFilters();
     applyAllFilters();
 }
@@ -649,7 +712,7 @@ function removeFilter(type) {
 }
 function clearFilters() {
     activeFilters = {};
-    document.getElementById('filter-menu').classList.add('hidden');
+    animateDropdownClose(document.getElementById('filter-menu'));
     renderActiveFilters();
     applyAllFilters();
 }
@@ -686,10 +749,10 @@ function toggleColMenu(status) {
     const menu = document.getElementById('col-menu-' + status);
     const wasHidden = menu.classList.contains('hidden');
     closeAllColMenus();
-    if (wasHidden) menu.classList.remove('hidden');
+    if (wasHidden) animateDropdownOpen(menu);
 }
 function closeAllColMenus() {
-    document.querySelectorAll('[id^="col-menu-"]').forEach(m => m.classList.add('hidden'));
+    document.querySelectorAll('[id^="col-menu-"]').forEach(m => animateDropdownClose(m));
 }
 function sortColumn(status, sortBy) {
     const zone = document.querySelector(`.drop-zone[data-status="${status}"]`);
@@ -708,39 +771,82 @@ function sortColumn(status, sortBy) {
 function collapseColumn(status) {
     const col = document.getElementById('col-' + status);
     const zone = col.querySelector('.drop-zone');
-    zone.classList.toggle('hidden');
+    zone.classList.toggle('collapsed');
     closeAllColMenus();
 }
 
 // --- Hidden columns ---
+function toggleHiddenList() {
+    const list = document.getElementById('hidden-list');
+    const chevron = document.getElementById('hidden-chevron');
+    if (list.classList.contains('hidden')) {
+        list.classList.remove('hidden');
+        list.style.opacity = '0';
+        list.style.transform = 'translateY(-8px)';
+        requestAnimationFrame(() => {
+            list.style.transition = 'opacity 200ms ease-out, transform 200ms ease-out';
+            list.style.opacity = '1';
+            list.style.transform = 'translateY(0)';
+        });
+        chevron.style.transform = 'rotate(0deg)';
+    } else {
+        list.style.transition = 'opacity 150ms ease-in, transform 150ms ease-in';
+        list.style.opacity = '0';
+        list.style.transform = 'translateY(-8px)';
+        setTimeout(() => {
+            list.classList.add('hidden');
+            list.style.transition = '';
+            list.style.opacity = '';
+            list.style.transform = '';
+        }, 150);
+        chevron.style.transform = 'rotate(-90deg)';
+    }
+}
 async function toggleHiddenColumn(status) {
     const container = document.getElementById('hidden-expanded-' + status);
     if (!container.classList.contains('hidden')) {
-        container.classList.add('hidden');
+        // Animate collapse
+        container.style.transition = 'opacity 150ms ease-in, max-height 200ms ease-in';
+        container.style.opacity = '0';
+        container.style.maxHeight = '0';
+        setTimeout(() => {
+            container.classList.add('hidden');
+            container.style.transition = '';
+            container.style.opacity = '';
+            container.style.maxHeight = '';
+        }, 200);
         return;
     }
     try {
         const issues = await api(`/api/projects/${PROJECT_ID}/issues?status=${status}`);
-        container.innerHTML = issues.slice(0, 15).map(i =>
-            `<div class="flex items-center gap-2 px-2 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50 rounded cursor-pointer" onclick="openIssueDetail('${i.id}')">
+        container.innerHTML = issues.slice(0, 15).map((i, idx) =>
+            `<div class="flex items-center gap-2 px-2 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50 rounded cursor-pointer" onclick="openIssueDetail('${i.id}')" style="opacity:0;transform:translateY(-4px);animation:cardIn 200ms ease-out ${idx * 30}ms forwards">
                 <span class="text-2xs text-muted font-mono">${i.project_prefix}-${i.number}</span>
                 <span class="truncate">${i.title}</span>
             </div>`
         ).join('') || '<div class="px-2 py-1.5 text-2xs text-neutral-400">No issues</div>';
         if (issues.length > 15) {
-            container.innerHTML += `<div class="px-2 py-1 text-2xs text-muted">... and ${issues.length - 15} more</div>`;
+            container.innerHTML += `<div class="px-2 py-1 text-2xs text-muted" style="opacity:0;animation:cardIn 200ms ease-out ${15 * 30}ms forwards">... and ${issues.length - 15} more</div>`;
         }
         container.classList.remove('hidden');
+        container.style.opacity = '0';
+        container.style.maxHeight = '0';
+        requestAnimationFrame(() => {
+            container.style.transition = 'opacity 200ms ease-out, max-height 300ms ease-out';
+            container.style.opacity = '1';
+            container.style.maxHeight = container.scrollHeight + 'px';
+            setTimeout(() => { container.style.maxHeight = 'none'; }, 300);
+        });
     } catch (err) { showToast('Error loading issues'); }
 }
 
 // --- Close dropdowns on outside click ---
 document.addEventListener('click', (e) => {
     if (!e.target.closest('#display-menu') && !e.target.closest('[onclick*="toggleDisplayMenu"]')) {
-        document.getElementById('display-menu').classList.add('hidden');
+        animateDropdownClose(document.getElementById('display-menu'));
     }
     if (!e.target.closest('#filter-menu') && !e.target.closest('[onclick*="toggleFilterMenu"]')) {
-        document.getElementById('filter-menu').classList.add('hidden');
+        animateDropdownClose(document.getElementById('filter-menu'));
     }
     if (!e.target.closest('[id^="col-menu-"]') && !e.target.closest('[onclick*="toggleColMenu"]')) {
         closeAllColMenus();
@@ -753,8 +859,8 @@ document.addEventListener('keydown', (e) => {
         closeCreateModal();
         closeDetailPanel();
         closeSearchModal();
-        document.getElementById('display-menu').classList.add('hidden');
-        document.getElementById('filter-menu').classList.add('hidden');
+        animateDropdownClose(document.getElementById('display-menu'));
+        animateDropdownClose(document.getElementById('filter-menu'));
         closeAllColMenus();
     }
     // Cmd/Ctrl+K for search
@@ -769,6 +875,11 @@ document.addEventListener('keydown', (e) => {
         document.getElementById('search-modal').classList.contains('hidden')) {
         openCreateModal();
     }
+});
+
+// --- Staggered card entrance ---
+document.querySelectorAll('.issue-card.anim-card').forEach((card, i) => {
+    card.style.animationDelay = `${i * 30}ms`;
 });
 </script>
 {% endblock %}
