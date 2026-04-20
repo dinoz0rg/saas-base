@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} · Tracker{% endblock %}
+
+{% block body %}
+{% include "components/sidebar.html" %}
+
+<!-- Main content -->
+<main class="flex-1 flex flex-col min-w-0">
+    <!-- Top bar -->
+    <header class="h-11 border-b border-border flex items-center px-4 shrink-0">
+        <div class="flex items-center gap-1.5 text-sm">
+            <a href="javascript:history.back()" class="p-0.5 hover:bg-neutral-100 rounded">
+                <svg class="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/>
+                </svg>
+            </a>
+            <a href="javascript:history.forward()" class="p-0.5 hover:bg-neutral-100 rounded">
+                <svg class="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
+                </svg>
+            </a>
+        </div>
+        <div class="flex items-center gap-2 mx-auto">
+            <span class="font-medium text-xs">{{ page_title }}</span>
+        </div>
+        <div class="w-16"></div>
+    </header>
+
+    <!-- Page content -->
+    <div class="flex-1 overflow-y-auto">
+        {% block page_content %}
+        <div class="max-w-3xl mx-auto px-6 py-10">
+            {% if page_icon %}
+            <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-neutral-100 mb-4">
+                {{ page_icon | safe }}
+            </div>
+            {% endif %}
+            <h1 class="text-lg font-semibold text-neutral-900 mb-1">{{ page_title }}</h1>
+            <p class="text-sm text-neutral-500 mb-6">{{ page_description }}</p>
+
+            {% if items %}
+            <div class="border border-neutral-200 rounded-lg overflow-hidden">
+                {% for item in items %}
+                <a href="{{ item.url }}" class="flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 {% if not loop.last %}border-b border-neutral-100{% endif %}">
+                    {% if item.icon %}
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br {{ item.icon_bg | default('from-neutral-200 to-neutral-300') }} flex items-center justify-center shrink-0">
+                        <span class="text-white text-xs font-bold">{{ item.icon }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="min-w-0 flex-1">
+                        <div class="text-sm font-medium text-neutral-800 truncate">{{ item.title }}</div>
+                        {% if item.subtitle %}
+                        <div class="text-2xs text-muted truncate">{{ item.subtitle }}</div>
+                        {% endif %}
+                    </div>
+                    {% if item.badge %}
+                    <span class="text-2xs text-muted bg-neutral-100 rounded px-1.5 py-0.5">{{ item.badge }}</span>
+                    {% endif %}
+                    <svg class="w-4 h-4 text-neutral-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
+                    </svg>
+                </a>
+                {% endfor %}
+            </div>
+            {% elif issues %}
+            <div class="border border-neutral-200 rounded-lg overflow-hidden">
+                {% for issue in issues %}
+                <div class="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 cursor-pointer {% if not loop.last %}border-b border-neutral-100{% endif %}"
+                     onclick="window.location.href='{{ board_url }}'">
+                    <span class="text-2xs text-muted font-mono w-14 shrink-0">{{ issue.project.prefix }}-{{ issue.number }}</span>
+                    {% set prio_icons = {'urgent':'🔴','high':'🟠','medium':'🟡','low':'🔵','none':'⚪'} %}
+                    <span class="text-xs">{{ prio_icons[issue.priority.value] }}</span>
+                    <span class="text-sm text-neutral-800 truncate flex-1">{{ issue.title }}</span>
+                    {% set status_badges = {'backlog':'bg-neutral-200 text-neutral-600','todo':'bg-neutral-200 text-neutral-600','in_progress':'bg-amber-100 text-amber-700','done':'bg-green-100 text-green-700','cancelled':'bg-neutral-200 text-neutral-500','duplicate':'bg-neutral-200 text-neutral-500'} %}
+                    <span class="text-2xs px-1.5 py-0.5 rounded {{ status_badges[issue.status.value] }}">{{ issue.status.value | replace('_',' ') | title }}</span>
+                    {% if issue.assignee_name %}
+                    <div class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shrink-0" title="{{ issue.assignee_name }}">
+                        <span class="text-white text-[8px] font-bold">{{ issue.assignee_name[0] | upper }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-16">
+                <div class="w-12 h-12 rounded-xl bg-neutral-100 flex items-center justify-center mx-auto mb-3">
+                    <svg class="w-6 h-6 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859"/>
+                    </svg>
+                </div>
+                <p class="text-sm text-neutral-500">Nothing here yet</p>
+                <p class="text-2xs text-muted mt-1">{{ empty_message | default('Items will appear here once created.') }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endblock %}
+    </div>
+</main>
+{% endblock %}

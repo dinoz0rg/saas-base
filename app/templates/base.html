@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Tracker{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sidebar: '#f9f9f8',
+                        surface: '#ffffff',
+                        border: '#e8e8e6',
+                        muted: '#8a8a86',
+                        subtle: '#6b6b67',
+                    },
+                    fontSize: {
+                        '2xs': '0.6875rem',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+        .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #d4d4d0; border-radius: 4px; }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #b4b4b0; }
+        .kanban-col { min-height: calc(100vh - 7rem); }
+    </style>
+</head>
+<body class="h-full bg-white text-neutral-900 text-sm antialiased">
+    <div class="flex h-full">
+        {% block body %}{% endblock %}
+    </div>
+</body>
+</html>

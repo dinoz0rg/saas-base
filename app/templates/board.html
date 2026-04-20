@@ -1,0 +1,774 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} › All issues{% endblock %}
+
+{% block body %}
+{% include "components/sidebar.html" %}
+
+<!-- Main content -->
+<main class="flex-1 flex flex-col min-w-0">
+    <!-- Top bar -->
+    <header class="h-11 border-b border-border flex items-center px-4 shrink-0">
+        <div class="flex items-center gap-1.5 text-sm">
+            <div class="flex items-center gap-1.5">
+                <a href="javascript:history.back()" class="p-0.5 hover:bg-neutral-100 rounded">
+                    <svg class="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/>
+                    </svg>
+                </a>
+                <a href="javascript:history.forward()" class="p-0.5 hover:bg-neutral-100 rounded">
+                    <svg class="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
+                    </svg>
+                </a>
+            </div>
+            <div class="flex items-center gap-1 ml-2">
+                <a href="/{{ workspace.slug }}/{{ project.prefix }}/board" class="p-0.5 hover:bg-neutral-100 rounded">
+                    <svg class="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 mx-auto">
+            <span class="text-neutral-500 text-xs">{{ project.name }} ›</span>
+            <span class="font-medium text-xs">All issues</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button onclick="showToast('No new notifications')" class="p-1 hover:bg-neutral-100 rounded" title="Notifications">
+                <svg class="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
+                </svg>
+            </button>
+            <button onclick="openCreateModal()" class="p-1 hover:bg-neutral-100 rounded" title="New issue">
+                <svg class="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Sub-header with tabs and filter -->
+    <div class="h-10 border-b border-border flex items-center px-4 gap-1 shrink-0">
+        <div class="flex items-center gap-0.5" id="board-tabs">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-neutral-100">
+                <div class="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+                    <span class="text-white text-[7px] font-bold">{{ project.prefix[0] }}</span>
+                </div>
+                {{ project.name }}
+            </span>
+            <button onclick="setViewTab('all')" data-tab="all" class="board-tab active inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs bg-neutral-50 font-medium text-neutral-800 cursor-pointer">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/>
+                </svg>
+                All issues
+            </button>
+            <button onclick="setViewTab('active')" data-tab="active" class="board-tab inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs text-neutral-600 hover:bg-neutral-50 cursor-pointer">
+                <svg class="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="5"/>
+                </svg>
+                Active
+            </button>
+            <button onclick="setViewTab('backlog')" data-tab="backlog" class="board-tab inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs text-neutral-600 hover:bg-neutral-50 cursor-pointer">
+                <svg class="w-3 h-3 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+                </svg>
+                Backlog
+            </button>
+        </div>
+
+        <div class="ml-auto flex items-center gap-2">
+            <div class="relative">
+                <button onclick="toggleDisplayMenu()" class="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-neutral-500 hover:bg-neutral-50 rounded-md">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/>
+                    </svg>
+                    Display
+                </button>
+                <div id="display-menu" class="hidden absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-30">
+                    <div class="px-3 py-1.5 text-2xs font-medium text-muted uppercase">Grouping</div>
+                    <button onclick="setGrouping('status')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50 flex items-center justify-between group-opt" data-group="status">
+                        Status <span class="text-blue-500 text-2xs">✓</span>
+                    </button>
+                    <button onclick="setGrouping('priority')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50 flex items-center justify-between group-opt" data-group="priority">
+                        Priority <span class="text-blue-500 text-2xs hidden">✓</span>
+                    </button>
+                    <button onclick="setGrouping('assignee')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50 flex items-center justify-between group-opt" data-group="assignee">
+                        Assignee <span class="text-blue-500 text-2xs hidden">✓</span>
+                    </button>
+                    <div class="border-t border-neutral-100 my-1"></div>
+                    <div class="px-3 py-1.5 text-2xs font-medium text-muted uppercase">Display</div>
+                    <label class="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-neutral-50 cursor-pointer">
+                        <input type="checkbox" checked onchange="toggleLabels(this.checked)" class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500 w-3 h-3">
+                        Show labels
+                    </label>
+                    <label class="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-neutral-50 cursor-pointer">
+                        <input type="checkbox" checked onchange="toggleAssignees(this.checked)" class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500 w-3 h-3">
+                        Show assignees
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="h-9 border-b border-border flex items-center px-4 gap-2 shrink-0">
+        <div class="relative">
+            <button onclick="toggleFilterMenu()" class="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-neutral-500 hover:bg-neutral-50 rounded-md">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/>
+                </svg>
+                Filter
+            </button>
+            <div id="filter-menu" class="hidden absolute left-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-30">
+                <div class="px-3 py-1.5 text-2xs font-medium text-muted uppercase">Filter by priority</div>
+                <button onclick="applyFilter('priority','urgent')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">🔴 Urgent</button>
+                <button onclick="applyFilter('priority','high')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">🟠 High</button>
+                <button onclick="applyFilter('priority','medium')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">🟡 Medium</button>
+                <button onclick="applyFilter('priority','low')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">🔵 Low</button>
+                <button onclick="applyFilter('priority','none')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">⚪ No priority</button>
+                <div class="border-t border-neutral-100 my-1"></div>
+                <div class="px-3 py-1.5 text-2xs font-medium text-muted uppercase">Filter by label</div>
+                <div id="filter-labels-list" class="max-h-32 overflow-y-auto"></div>
+                <div class="border-t border-neutral-100 my-1"></div>
+                <button onclick="clearFilters()" class="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:bg-red-50">Clear all filters</button>
+            </div>
+        </div>
+        <div id="active-filters" class="flex items-center gap-1.5"></div>
+    </div>
+
+    <!-- Board columns -->
+    <div class="flex-1 flex overflow-x-auto">
+        {% set visible_statuses = [
+            ("backlog", "Backlog", "text-neutral-400", "○"),
+            ("todo", "Todo", "text-neutral-400", "○"),
+            ("in_progress", "In Progress", "text-amber-500", "◐"),
+        ] %}
+
+        {% for status_key, status_label, color_class, icon in visible_statuses %}
+        <div class="w-80 shrink-0 border-r border-border flex flex-col kanban-col"
+             data-status="{{ status_key }}"
+             id="col-{{ status_key }}">
+            <!-- Column header -->
+            <div class="flex items-center gap-2 px-4 py-3 sticky top-0 bg-white z-10">
+                <span class="{{ color_class }} text-base">{{ icon }}</span>
+                <span class="font-medium text-xs">{{ status_label }}</span>
+                <span class="text-xs text-muted col-count">{{ board[status_key]|length }}</span>
+                <div class="ml-auto flex items-center gap-1">
+                    <div class="relative">
+                        <button onclick="event.stopPropagation(); toggleColMenu('{{ status_key }}')" class="p-0.5 hover:bg-neutral-100 rounded text-muted">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/>
+                            </svg>
+                        </button>
+                        <div id="col-menu-{{ status_key }}" class="hidden absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-30">
+                            <button onclick="sortColumn('{{ status_key }}','priority')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">Sort by priority</button>
+                            <button onclick="sortColumn('{{ status_key }}','title')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">Sort by title</button>
+                            <button onclick="sortColumn('{{ status_key }}','created')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">Sort by newest</button>
+                            <div class="border-t border-neutral-100 my-1"></div>
+                            <button onclick="collapseColumn('{{ status_key }}')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">Collapse column</button>
+                        </div>
+                    </div>
+                    <button class="p-0.5 hover:bg-neutral-100 rounded text-muted add-issue-btn"
+                            onclick="event.stopPropagation(); openCreateModal('{{ status_key }}')">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cards drop zone -->
+            <div class="flex-1 overflow-y-auto px-2 pb-4 space-y-2 scrollbar-thin drop-zone"
+                 data-status="{{ status_key }}">
+                {% for issue in board[status_key] %}
+                {% include "components/issue_card.html" %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Hidden columns summary -->
+        <div class="w-64 shrink-0 p-4" id="hidden-columns-panel">
+            <div class="flex items-center gap-1.5 mb-3 cursor-pointer" onclick="document.getElementById('hidden-list').classList.toggle('hidden')">
+                <svg class="w-3 h-3 text-muted transition-transform" id="hidden-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                </svg>
+                <span class="text-xs font-medium text-neutral-600">Hidden columns</span>
+            </div>
+
+            {% set hidden_statuses = [
+                ("done", "Done", "bg-blue-500", "✓"),
+                ("cancelled", "Cancelled", "bg-neutral-400", "✕"),
+                ("duplicate", "Duplicate", "bg-neutral-400", "⊘"),
+            ] %}
+
+            <div class="space-y-1" id="hidden-list">
+                {% for status_key, status_label, badge_color, icon in hidden_statuses %}
+                <div class="flex items-center justify-between py-2 px-2 rounded-md hover:bg-neutral-50 group cursor-pointer"
+                     onclick="toggleHiddenColumn('{{ status_key }}')">
+                    <div class="flex items-center gap-2">
+                        <span class="w-4 h-4 rounded-full {{ badge_color }} text-white text-2xs flex items-center justify-center font-bold">{{ icon }}</span>
+                        <span class="text-xs text-neutral-700">{{ status_label }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-muted" id="hidden-count-{{ status_key }}">{{ counts[status_key] }}</span>
+                        <svg class="w-3.5 h-3.5 text-neutral-300 opacity-0 group-hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
+                        </svg>
+                    </div>
+                </div>
+                <!-- Expanded issue list for hidden column -->
+                <div id="hidden-expanded-{{ status_key }}" class="hidden ml-6 space-y-1 pb-2"></div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Create Issue Modal -->
+<div id="create-modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/30" onclick="closeCreateModal()"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl w-[520px] max-h-[80vh] overflow-hidden">
+        <form id="create-form" onsubmit="submitCreateIssue(event)">
+            <div class="px-5 pt-5 pb-3">
+                <h3 class="text-sm font-semibold text-neutral-800 mb-4">New issue</h3>
+                <input type="text" name="title" placeholder="Issue title" required
+                       class="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3"
+                       autocomplete="off">
+                <textarea name="description" placeholder="Add description..." rows="3"
+                          class="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3 resize-none"></textarea>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-2xs font-medium text-muted mb-1">Status</label>
+                        <select name="status" class="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="backlog">Backlog</option>
+                            <option value="todo">Todo</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="done">Done</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-2xs font-medium text-muted mb-1">Priority</label>
+                        <select name="priority" class="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="none">No priority</option>
+                            <option value="urgent">Urgent</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-2xs font-medium text-muted mb-1">Assignee</label>
+                    <input type="text" name="assignee_name" placeholder="Assignee name"
+                           class="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="mb-1">
+                    <label class="block text-2xs font-medium text-muted mb-1">Labels</label>
+                    <div id="create-labels-container" class="flex flex-wrap gap-1.5"></div>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-2 px-5 py-3 border-t border-neutral-100">
+                <button type="button" onclick="closeCreateModal()" class="px-3 py-1.5 text-xs text-neutral-600 hover:bg-neutral-100 rounded-lg">Cancel</button>
+                <button type="submit" class="px-3 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-lg font-medium">Create issue</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Issue Detail Slide-over -->
+<div id="detail-panel" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/20" onclick="closeDetailPanel()"></div>
+    <div class="absolute right-0 top-0 bottom-0 w-[560px] bg-white shadow-2xl border-l border-neutral-200 flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-3 border-b border-neutral-100">
+            <span class="text-2xs text-muted font-medium" id="detail-identifier"></span>
+            <div class="flex items-center gap-1">
+                <button onclick="deleteCurrentIssue()" class="p-1.5 hover:bg-red-50 rounded-lg text-neutral-400 hover:text-red-500" title="Delete">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
+                    </svg>
+                </button>
+                <button onclick="closeDetailPanel()" class="p-1.5 hover:bg-neutral-100 rounded-lg text-neutral-400">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-5">
+            <input type="text" id="detail-title" class="w-full text-lg font-semibold text-neutral-900 border-0 focus:outline-none focus:ring-0 mb-4 p-0"
+                   onchange="updateCurrentIssue({title: this.value})">
+            <textarea id="detail-description" rows="4" placeholder="Add description..."
+                      class="w-full text-sm text-neutral-600 border-0 focus:outline-none focus:ring-0 resize-none p-0 mb-6"
+                      onchange="updateCurrentIssue({description: this.value})"></textarea>
+            <div class="space-y-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xs font-medium text-muted w-20">Status</span>
+                    <select id="detail-status" class="flex-1 px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onchange="updateCurrentIssue({status: this.value})">
+                        <option value="backlog">Backlog</option>
+                        <option value="todo">Todo</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="done">Done</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="duplicate">Duplicate</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-2xs font-medium text-muted w-20">Priority</span>
+                    <select id="detail-priority" class="flex-1 px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onchange="updateCurrentIssue({priority: this.value})">
+                        <option value="none">No priority</option>
+                        <option value="urgent">Urgent</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-2xs font-medium text-muted w-20">Assignee</span>
+                    <input type="text" id="detail-assignee" placeholder="Unassigned"
+                           class="flex-1 px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           onchange="updateCurrentIssue({assignee_name: this.value || null})">
+                </div>
+                <div>
+                    <span class="text-2xs font-medium text-muted">Labels</span>
+                    <div id="detail-labels-container" class="flex flex-wrap gap-1.5 mt-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Modal -->
+<div id="search-modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/30" onclick="closeSearchModal()"></div>
+    <div class="absolute top-[20%] left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-2xl w-[520px] overflow-hidden">
+        <div class="flex items-center gap-3 px-4 py-3 border-b border-neutral-100">
+            <svg class="w-4 h-4 text-neutral-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input type="text" id="search-input" placeholder="Search issues..." autocomplete="off"
+                   class="flex-1 text-sm border-0 focus:outline-none focus:ring-0 p-0"
+                   oninput="handleSearch(this.value)">
+            <kbd class="text-2xs text-neutral-400 border border-neutral-200 rounded px-1.5 py-0.5">ESC</kbd>
+        </div>
+        <div id="search-results" class="max-h-80 overflow-y-auto">
+            <div class="px-4 py-8 text-center text-sm text-neutral-400">Type to search issues...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast notification -->
+<div id="toast" class="fixed bottom-4 right-4 z-[100] hidden">
+    <div class="bg-neutral-800 text-white text-xs px-4 py-2 rounded-lg shadow-lg"></div>
+</div>
+
+<script>
+const PROJECT_ID = "{{ project.id }}";
+const BOARD_URL = "/{{ workspace.slug }}/{{ project.prefix }}/board";
+let currentIssueId = null;
+let allLabels = [];
+
+// --- Toast ---
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.querySelector('div').textContent = msg;
+    t.classList.remove('hidden');
+    setTimeout(() => t.classList.add('hidden'), 2000);
+}
+
+// --- Fetch helpers ---
+async function api(url, opts = {}) {
+    opts.headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+    if (opts.body && typeof opts.body === 'object') opts.body = JSON.stringify(opts.body);
+    const res = await fetch(url, opts);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
+
+// --- Labels ---
+async function loadLabels() {
+    allLabels = await api(`/api/projects/${PROJECT_ID}/labels`);
+}
+loadLabels();
+
+function renderLabelCheckboxes(container, selectedIds = []) {
+    container.innerHTML = allLabels.map(l => {
+        const checked = selectedIds.includes(l.id) ? 'checked' : '';
+        const colors = {red:'bg-red-500',orange:'bg-orange-500',amber:'bg-amber-500',green:'bg-green-500',teal:'bg-teal-500',blue:'bg-blue-500',purple:'bg-purple-500',gray:'bg-neutral-400'};
+        const dot = colors[l.color] || 'bg-neutral-400';
+        return `<label class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-neutral-200 cursor-pointer hover:bg-neutral-50 text-2xs">
+            <input type="checkbox" value="${l.id}" ${checked} class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500 w-3 h-3">
+            <span class="w-1.5 h-1.5 rounded-full ${dot}"></span>${l.name}
+        </label>`;
+    }).join('');
+}
+
+function getSelectedLabelIds(container) {
+    return [...container.querySelectorAll('input[type=checkbox]:checked')].map(c => c.value);
+}
+
+// --- Create Issue Modal ---
+function openCreateModal(status) {
+    const modal = document.getElementById('create-modal');
+    const form = document.getElementById('create-form');
+    form.reset();
+    form.querySelector('[name=status]').value = status || 'backlog';
+    renderLabelCheckboxes(document.getElementById('create-labels-container'));
+    modal.classList.remove('hidden');
+}
+function closeCreateModal() { document.getElementById('create-modal').classList.add('hidden'); }
+
+async function submitCreateIssue(e) {
+    e.preventDefault();
+    const form = e.target;
+    const data = {
+        title: form.title.value,
+        description: form.description.value || null,
+        status: form.status.value,
+        priority: form.priority.value,
+        assignee_name: form.assignee_name.value || null,
+        label_ids: getSelectedLabelIds(document.getElementById('create-labels-container')),
+    };
+    try {
+        await api(`/api/projects/${PROJECT_ID}/issues`, { method: 'POST', body: data });
+        closeCreateModal();
+        showToast('Issue created');
+        location.reload();
+    } catch (err) { showToast('Error: ' + err.message); }
+}
+
+// --- Issue Detail ---
+async function openIssueDetail(issueId) {
+    currentIssueId = issueId;
+    try {
+        const issue = await api(`/api/issues/${issueId}`);
+        document.getElementById('detail-identifier').textContent = issue.project_prefix + '-' + issue.number;
+        document.getElementById('detail-title').value = issue.title;
+        document.getElementById('detail-description').value = issue.description || '';
+        document.getElementById('detail-status').value = issue.status;
+        document.getElementById('detail-priority').value = issue.priority;
+        document.getElementById('detail-assignee').value = issue.assignee_name || '';
+        renderLabelCheckboxes(
+            document.getElementById('detail-labels-container'),
+            issue.labels.map(l => l.id)
+        );
+        // Add change listeners for label checkboxes
+        document.getElementById('detail-labels-container').querySelectorAll('input[type=checkbox]').forEach(cb => {
+            cb.addEventListener('change', () => {
+                const ids = getSelectedLabelIds(document.getElementById('detail-labels-container'));
+                updateCurrentIssue({ label_ids: ids });
+            });
+        });
+        document.getElementById('detail-panel').classList.remove('hidden');
+    } catch (err) { showToast('Error loading issue'); }
+}
+function closeDetailPanel() {
+    document.getElementById('detail-panel').classList.add('hidden');
+    currentIssueId = null;
+}
+
+async function updateCurrentIssue(fields) {
+    if (!currentIssueId) return;
+    try {
+        await api(`/api/issues/${currentIssueId}`, { method: 'PATCH', body: fields });
+        showToast('Updated');
+        // If status changed, reload
+        if (fields.status) location.reload();
+    } catch (err) { showToast('Error: ' + err.message); }
+}
+
+async function deleteCurrentIssue() {
+    if (!currentIssueId) return;
+    if (!confirm('Delete this issue?')) return;
+    try {
+        await api(`/api/issues/${currentIssueId}`, { method: 'DELETE' });
+        closeDetailPanel();
+        showToast('Issue deleted');
+        location.reload();
+    } catch (err) { showToast('Error: ' + err.message); }
+}
+
+// --- Drag & Drop ---
+let draggedCard = null;
+
+document.addEventListener('dragstart', (e) => {
+    const card = e.target.closest('.issue-card');
+    if (!card) return;
+    draggedCard = card;
+    card.style.opacity = '0.5';
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', card.dataset.issueId);
+});
+
+document.addEventListener('dragend', (e) => {
+    if (draggedCard) draggedCard.style.opacity = '1';
+    draggedCard = null;
+    document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('bg-blue-50'));
+});
+
+document.querySelectorAll('.drop-zone').forEach(zone => {
+    zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        zone.classList.add('bg-blue-50');
+    });
+    zone.addEventListener('dragleave', () => {
+        zone.classList.remove('bg-blue-50');
+    });
+    zone.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        zone.classList.remove('bg-blue-50');
+        const issueId = e.dataTransfer.getData('text/plain');
+        const newStatus = zone.dataset.status;
+        if (!issueId || !newStatus) return;
+        // Optimistic UI: move card
+        if (draggedCard) {
+            zone.appendChild(draggedCard);
+            draggedCard.style.opacity = '1';
+        }
+        try {
+            await api(`/api/issues/${issueId}`, { method: 'PATCH', body: { status: newStatus } });
+            showToast('Moved to ' + newStatus.replace('_', ' '));
+            location.reload();
+        } catch (err) {
+            showToast('Error moving issue');
+            location.reload();
+        }
+    });
+});
+
+// --- Search ---
+function openSearchModal() {
+    document.getElementById('search-modal').classList.remove('hidden');
+    document.getElementById('search-input').value = '';
+    document.getElementById('search-input').focus();
+    document.getElementById('search-results').innerHTML = '<div class="px-4 py-8 text-center text-sm text-neutral-400">Type to search issues...</div>';
+}
+function closeSearchModal() { document.getElementById('search-modal').classList.add('hidden'); }
+
+let searchTimeout;
+function handleSearch(query) {
+    clearTimeout(searchTimeout);
+    if (!query.trim()) {
+        document.getElementById('search-results').innerHTML = '<div class="px-4 py-8 text-center text-sm text-neutral-400">Type to search issues...</div>';
+        return;
+    }
+    searchTimeout = setTimeout(async () => {
+        try {
+            const issues = await api(`/api/projects/${PROJECT_ID}/issues`);
+            const q = query.toLowerCase();
+            const matches = issues.filter(i => i.title.toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q) || `${i.project_prefix}-${i.number}`.toLowerCase().includes(q));
+            const container = document.getElementById('search-results');
+            if (!matches.length) {
+                container.innerHTML = '<div class="px-4 py-8 text-center text-sm text-neutral-400">No issues found</div>';
+                return;
+            }
+            container.innerHTML = matches.slice(0, 20).map(i => {
+                const statusColors = {backlog:'bg-neutral-200',todo:'bg-neutral-200',in_progress:'bg-amber-100',done:'bg-green-100',cancelled:'bg-neutral-200',duplicate:'bg-neutral-200'};
+                return `<div class="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 cursor-pointer border-b border-neutral-50" onclick="closeSearchModal(); openIssueDetail('${i.id}')">
+                    <span class="text-2xs text-muted font-mono w-14 shrink-0">${i.project_prefix}-${i.number}</span>
+                    <span class="text-sm text-neutral-800 truncate flex-1">${i.title}</span>
+                    <span class="text-2xs px-1.5 py-0.5 rounded ${statusColors[i.status] || 'bg-neutral-200'}">${i.status.replace('_',' ')}</span>
+                </div>`;
+            }).join('');
+        } catch (err) { console.error(err); }
+    }, 200);
+}
+
+// --- View Tabs ---
+function setViewTab(tab) {
+    document.querySelectorAll('.board-tab').forEach(b => {
+        b.className = b.className.replace(/bg-neutral-50 font-medium text-neutral-800/g, '').replace(/text-neutral-600/g, '');
+        if (b.dataset.tab === tab) {
+            b.classList.add('bg-neutral-50', 'font-medium', 'text-neutral-800');
+        } else {
+            b.classList.add('text-neutral-600');
+        }
+    });
+    const cols = { all: ['backlog','todo','in_progress'], active: ['in_progress','todo'], backlog: ['backlog'] };
+    const visible = cols[tab] || cols.all;
+    document.querySelectorAll('.kanban-col').forEach(col => {
+        col.style.display = visible.includes(col.dataset.status) ? '' : 'none';
+    });
+}
+
+// --- Display Menu ---
+function toggleDisplayMenu() {
+    const m = document.getElementById('display-menu');
+    m.classList.toggle('hidden');
+    document.getElementById('filter-menu').classList.add('hidden');
+    closeAllColMenus();
+}
+function setGrouping(group) {
+    document.querySelectorAll('.group-opt span').forEach(s => s.classList.add('hidden'));
+    document.querySelector(`.group-opt[data-group="${group}"] span`).classList.remove('hidden');
+    showToast('Grouped by ' + group);
+    document.getElementById('display-menu').classList.add('hidden');
+}
+function toggleLabels(show) {
+    document.querySelectorAll('.issue-card .card-labels').forEach(el => el.style.display = show ? '' : 'none');
+}
+function toggleAssignees(show) {
+    document.querySelectorAll('.issue-card .card-assignee').forEach(el => el.style.display = show ? '' : 'none');
+}
+
+// --- Filter Menu ---
+let activeFilters = {};
+function toggleFilterMenu() {
+    const m = document.getElementById('filter-menu');
+    m.classList.toggle('hidden');
+    document.getElementById('display-menu').classList.add('hidden');
+    closeAllColMenus();
+    // Render label filters
+    const container = document.getElementById('filter-labels-list');
+    if (allLabels.length) {
+        const colors = {red:'bg-red-500',orange:'bg-orange-500',amber:'bg-amber-500',green:'bg-green-500',teal:'bg-teal-500',blue:'bg-blue-500',purple:'bg-purple-500',gray:'bg-neutral-400'};
+        container.innerHTML = allLabels.map(l => {
+            const dot = colors[l.color] || 'bg-neutral-400';
+            return `<button onclick="applyFilter('label','${l.name}')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full ${dot}"></span>${l.name}
+            </button>`;
+        }).join('');
+    }
+}
+function applyFilter(type, value) {
+    activeFilters[type] = value;
+    document.getElementById('filter-menu').classList.add('hidden');
+    renderActiveFilters();
+    applyAllFilters();
+}
+function removeFilter(type) {
+    delete activeFilters[type];
+    renderActiveFilters();
+    applyAllFilters();
+}
+function clearFilters() {
+    activeFilters = {};
+    document.getElementById('filter-menu').classList.add('hidden');
+    renderActiveFilters();
+    applyAllFilters();
+}
+function renderActiveFilters() {
+    const container = document.getElementById('active-filters');
+    container.innerHTML = Object.entries(activeFilters).map(([type, value]) =>
+        `<span class="inline-flex items-center gap-1 px-2 py-0.5 text-2xs bg-blue-50 text-blue-700 rounded-md">
+            ${type}: ${value}
+            <button onclick="removeFilter('${type}')" class="hover:text-blue-900 ml-0.5">&times;</button>
+        </span>`
+    ).join('');
+}
+function applyAllFilters() {
+    document.querySelectorAll('.issue-card').forEach(card => {
+        let show = true;
+        if (activeFilters.priority) {
+            show = show && card.dataset.priority === activeFilters.priority;
+        }
+        if (activeFilters.label) {
+            const cardLabels = (card.dataset.labels || '').toLowerCase();
+            show = show && cardLabels.includes(activeFilters.label.toLowerCase());
+        }
+        card.style.display = show ? '' : 'none';
+    });
+    // Update column counts
+    document.querySelectorAll('.kanban-col').forEach(col => {
+        const visible = col.querySelectorAll('.issue-card:not([style*="display: none"])').length;
+        col.querySelector('.col-count').textContent = visible;
+    });
+}
+
+// --- Column menus ---
+function toggleColMenu(status) {
+    const menu = document.getElementById('col-menu-' + status);
+    const wasHidden = menu.classList.contains('hidden');
+    closeAllColMenus();
+    if (wasHidden) menu.classList.remove('hidden');
+}
+function closeAllColMenus() {
+    document.querySelectorAll('[id^="col-menu-"]').forEach(m => m.classList.add('hidden'));
+}
+function sortColumn(status, sortBy) {
+    const zone = document.querySelector(`.drop-zone[data-status="${status}"]`);
+    const cards = [...zone.querySelectorAll('.issue-card')];
+    const priorityOrder = {urgent:0,high:1,medium:2,low:3,none:4};
+    cards.sort((a, b) => {
+        if (sortBy === 'priority') return (priorityOrder[a.dataset.priority] ?? 4) - (priorityOrder[b.dataset.priority] ?? 4);
+        if (sortBy === 'title') return (a.dataset.title || '').localeCompare(b.dataset.title || '');
+        if (sortBy === 'created') return (b.dataset.created || '').localeCompare(a.dataset.created || '');
+        return 0;
+    });
+    cards.forEach(c => zone.appendChild(c));
+    closeAllColMenus();
+    showToast('Sorted by ' + sortBy);
+}
+function collapseColumn(status) {
+    const col = document.getElementById('col-' + status);
+    const zone = col.querySelector('.drop-zone');
+    zone.classList.toggle('hidden');
+    closeAllColMenus();
+}
+
+// --- Hidden columns ---
+async function toggleHiddenColumn(status) {
+    const container = document.getElementById('hidden-expanded-' + status);
+    if (!container.classList.contains('hidden')) {
+        container.classList.add('hidden');
+        return;
+    }
+    try {
+        const issues = await api(`/api/projects/${PROJECT_ID}/issues?status=${status}`);
+        container.innerHTML = issues.slice(0, 15).map(i =>
+            `<div class="flex items-center gap-2 px-2 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50 rounded cursor-pointer" onclick="openIssueDetail('${i.id}')">
+                <span class="text-2xs text-muted font-mono">${i.project_prefix}-${i.number}</span>
+                <span class="truncate">${i.title}</span>
+            </div>`
+        ).join('') || '<div class="px-2 py-1.5 text-2xs text-neutral-400">No issues</div>';
+        if (issues.length > 15) {
+            container.innerHTML += `<div class="px-2 py-1 text-2xs text-muted">... and ${issues.length - 15} more</div>`;
+        }
+        container.classList.remove('hidden');
+    } catch (err) { showToast('Error loading issues'); }
+}
+
+// --- Close dropdowns on outside click ---
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#display-menu') && !e.target.closest('[onclick*="toggleDisplayMenu"]')) {
+        document.getElementById('display-menu').classList.add('hidden');
+    }
+    if (!e.target.closest('#filter-menu') && !e.target.closest('[onclick*="toggleFilterMenu"]')) {
+        document.getElementById('filter-menu').classList.add('hidden');
+    }
+    if (!e.target.closest('[id^="col-menu-"]') && !e.target.closest('[onclick*="toggleColMenu"]')) {
+        closeAllColMenus();
+    }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeCreateModal();
+        closeDetailPanel();
+        closeSearchModal();
+        document.getElementById('display-menu').classList.add('hidden');
+        document.getElementById('filter-menu').classList.add('hidden');
+        closeAllColMenus();
+    }
+    // Cmd/Ctrl+K for search
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        openSearchModal();
+    }
+    // C for create (when no input focused)
+    if (e.key === 'c' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName) &&
+        document.getElementById('create-modal').classList.contains('hidden') &&
+        document.getElementById('detail-panel').classList.contains('hidden') &&
+        document.getElementById('search-modal').classList.contains('hidden')) {
+        openCreateModal();
+    }
+});
+</script>
+{% endblock %}
