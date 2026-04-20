@@ -23,105 +23,13 @@
             }
         }
     </script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-        .scrollbar-thin::-webkit-scrollbar { width: 4px; }
-        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-        .scrollbar-thin::-webkit-scrollbar-thumb { background: #d4d4d0; border-radius: 4px; }
-        .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #b4b4b0; }
-        .kanban-col { min-height: calc(100vh - 7rem); }
-
-        /* ── Animations ── */
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
-        @keyframes scaleIn {
-            from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
-            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        }
-        @keyframes scaleOut {
-            from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            to { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
-        }
-        @keyframes searchIn {
-            from { opacity: 0; transform: translate(-50%, 0) scale(0.97); }
-            to { opacity: 1; transform: translate(-50%, 0) scale(1); }
-        }
-        @keyframes searchOut {
-            from { opacity: 1; transform: translate(-50%, 0) scale(1); }
-            to { opacity: 0; transform: translate(-50%, 0) scale(0.97); }
-        }
-        @keyframes slideInRight {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
-        }
-        @keyframes slideOutRight {
-            from { transform: translateX(0); }
-            to { transform: translateX(100%); }
-        }
-        @keyframes dropdownIn {
-            from { opacity: 0; transform: translateY(-4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes dropdownOut {
-            from { opacity: 1; transform: translateY(0); }
-            to { opacity: 0; transform: translateY(-4px); }
-        }
-        @keyframes toastIn {
-            from { opacity: 0; transform: translateY(8px) scale(0.96); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes toastOut {
-            from { opacity: 1; transform: translateY(0) scale(1); }
-            to { opacity: 0; transform: translateY(8px) scale(0.96); }
-        }
-        @keyframes cardIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Backdrop animations */
-        .anim-backdrop-in  { animation: fadeIn 0.2s ease-out forwards; }
-        .anim-backdrop-out { animation: fadeOut 0.15s ease-in forwards; }
-
-        /* Modal (create) animations */
-        .anim-modal-in  { animation: scaleIn 0.2s cubic-bezier(0.16,1,0.3,1) forwards; }
-        .anim-modal-out { animation: scaleOut 0.15s ease-in forwards; }
-
-        /* Search modal animations */
-        .anim-search-in  { animation: searchIn 0.2s cubic-bezier(0.16,1,0.3,1) forwards; }
-        .anim-search-out { animation: searchOut 0.15s ease-in forwards; }
-
-        /* Detail panel slide */
-        .anim-slide-in  { animation: slideInRight 0.25s cubic-bezier(0.16,1,0.3,1) forwards; }
-        .anim-slide-out { animation: slideOutRight 0.2s ease-in forwards; }
-
-        /* Dropdown menus */
-        .anim-dropdown-in  { animation: dropdownIn 0.15s ease-out forwards; }
-        .anim-dropdown-out { animation: dropdownOut 0.1s ease-in forwards; }
-
-        /* Toast */
-        .anim-toast-in  { animation: toastIn 0.25s cubic-bezier(0.16,1,0.3,1) forwards; }
-        .anim-toast-out { animation: toastOut 0.2s ease-in forwards; }
-
-        /* Card entrance */
-        .anim-card { opacity: 0; animation: cardIn 0.3s ease-out forwards; }
-
-        /* Drag ghost */
-        .issue-card.dragging { opacity: 0.5; transform: rotate(2deg); transition: transform 0.15s ease; }
-        .drop-zone.drag-over { background: rgba(59,130,246,0.04); outline: 2px dashed rgba(59,130,246,0.25); outline-offset: -2px; border-radius: 8px; transition: all 0.15s ease; }
-
-        /* Sidebar link transitions */
-        aside nav a, aside button { transition: background-color 0.15s ease, color 0.15s ease; }
-
-        /* Column collapse */
-        .drop-zone { transition: max-height 0.25s ease, opacity 0.2s ease; overflow: hidden; }
-        .drop-zone.collapsed { max-height: 0 !important; opacity: 0; padding: 0 !important; }
-    </style>
+    <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body class="h-full bg-white text-neutral-900 text-sm antialiased">
     <div class="flex h-full">
         {% block body %}{% endblock %}
     </div>
+    <script src="/static/js/app.js"></script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>
