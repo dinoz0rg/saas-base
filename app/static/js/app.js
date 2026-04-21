@@ -60,5 +60,6 @@ async function api(url, opts = {}) {
     if (opts.body && typeof opts.body === 'object') opts.body = JSON.stringify(opts.body);
     const res = await fetch(url, opts);
     if (!res.ok) throw new Error(await res.text());
+    if (res.status === 204) return null;
     return res.json();
 }

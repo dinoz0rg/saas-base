@@ -4,7 +4,7 @@
      data-issue-status="{{ issue.status.value }}"
      data-priority="{{ issue.priority.value }}"
      data-title="{{ issue.title }}"
-     data-labels="{{ issue.labels | map(attribute='name') | join(',') }}"
+     data-label="{{ issue.label or '' }}"
      data-created="{{ issue.created_at.isoformat() }}"
      draggable="true"
      onclick="openIssueDetail('{{ issue.id }}')">
@@ -12,7 +12,7 @@
         <div class="flex-1 min-w-0">
             <!-- Issue ID -->
             <div class="flex items-center gap-1.5 mb-1">
-                <span class="text-2xs text-muted font-medium">{{ issue.project.prefix }}-{{ issue.number }}</span>
+                <span class="text-2xs text-muted font-medium">{{ issue.identifier }}</span>
             </div>
             <!-- Title -->
             <div class="flex items-start gap-2">
@@ -59,36 +59,23 @@
         </div>
 
         <!-- Assignee avatar -->
-        {% if issue.assignee_name %}
+        {% if issue.assignee %}
         <div class="shrink-0 mt-2 card-assignee">
             <div class="w-5 h-5 rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center ring-1 ring-white">
-                <span class="text-white text-[8px] font-bold">{{ issue.assignee_name[0] | upper }}</span>
+                <span class="text-white text-[8px] font-bold">{{ issue.assignee[0] | upper }}</span>
             </div>
         </div>
         {% endif %}
     </div>
 
-    <!-- Labels -->
-    {% if issue.labels %}
+    <!-- Label -->
+    {% if issue.label %}
     <div class="flex items-center gap-1 mt-2 flex-wrap card-labels">
-        {% set label_colors = {
-            "red": "bg-red-100 text-red-700",
-            "orange": "bg-orange-100 text-orange-700",
-            "amber": "bg-amber-100 text-amber-700",
-            "yellow": "bg-yellow-100 text-yellow-700",
-            "green": "bg-green-100 text-green-700",
-            "teal": "bg-teal-100 text-teal-700",
-            "blue": "bg-blue-100 text-blue-700",
-            "purple": "bg-purple-100 text-purple-700",
-            "gray": "bg-neutral-100 text-neutral-600",
-        } %}
         <span class="text-muted">···</span>
-        {% for label in issue.labels %}
-        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-medium {{ label_colors.get(label.color, 'bg-neutral-100 text-neutral-600') }}">
-            <span class="w-1.5 h-1.5 rounded-full {% if label.color == 'red' %}bg-red-500{% elif label.color == 'orange' %}bg-orange-500{% elif label.color == 'amber' %}bg-amber-500{% elif label.color == 'green' %}bg-green-500{% elif label.color == 'teal' %}bg-teal-500{% elif label.color == 'blue' %}bg-blue-500{% elif label.color == 'purple' %}bg-purple-500{% else %}bg-neutral-400{% endif %}"></span>
-            {{ label.name }}
+        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-medium bg-neutral-100 text-neutral-600">
+            <span class="w-1.5 h-1.5 rounded-full bg-neutral-400"></span>
+            {{ issue.label }}
         </span>
-        {% endfor %}
     </div>
     {% endif %}
 </div>

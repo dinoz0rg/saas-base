@@ -1,12 +1,14 @@
-"""Seed the database with demo data matching the Linear-style screenshot."""
+"""Seed the database with demo data for the dashboard SaaS."""
 import asyncio
+from datetime import datetime, timezone, timedelta
 
 from sqlalchemy import select
 
 from app.database import async_session, engine, Base
-from app.models.issue import (
-    Issue, IssueStatus, IssuePriority, Label, Project, Workspace,
-)
+from app.auth import hash_password
+from app.models.user import User
+from app.models.workspace import Activity, ActivityType, Metric, MetricPeriod, Page
+from app.models.issue import Issue, IssueStatus, IssuePriority
 
 
 async def seed():
@@ -14,113 +16,142 @@ async def seed():
         await conn.run_sync(Base.metadata.create_all)
 
     async with async_session() as db:
-        # Check if already seeded
-        existing = await db.execute(select(Workspace).limit(1))
+        existing = await db.execute(select(User).limit(1))
         if existing.scalar_one_or_none():
             print("Database already seeded. Skipping.")
             return
 
-        # Workspace
-        ws = Workspace(name="Aceternity", slug="aceternity")
-        db.add(ws)
+        now = datetime.now(timezone.utc)
+
+        # Demo user (admin)
+        user = User(
+            email="demo@aceternity.dev",
+            display_name="Manu Arora",
+            hashed_password=hash_password("demo1234"),
+            is_admin=True,
+        )
+        db.add(user)
         await db.flush()
 
-        # Project
-        proj = Project(name="Aceternity Core", prefix="ACE", workspace_id=ws.id)
-        db.add(proj)
-        await db.flush()
-
-        # Labels
-        labels = {}
-        label_data = [
-            ("Document", "red"),
-            ("Wisdom", "green"),
-            ("Task", "gray"),
-            ("UI", "blue"),
-            ("Task - Content", "orange"),
-            ("Improvement", "blue"),
-            ("Long term", "orange"),
+        # Pages
+        pages_data = [
+            ("Getting Started", "getting-started", "Welcome to Aceternity! This guide will help you set up your dashboard.", True, 1247),
+            ("API Documentation", "api-docs", "Complete reference for the Aceternity API endpoints and authentication.", True, 892),
+            ("Changelog", "changelog", "All notable changes to the Aceternity platform.", True, 634),
+            ("Component Library", "components", "Browse and preview all available UI components.", True, 2103),
+            ("Pricing Plans", "pricing", "Compare features across Free, Pro, and Enterprise plans.", True, 1856),
+            ("Blog: Building Modern UIs", "blog-modern-uis", "How we approach building clean, minimal interfaces.", True, 423),
+            ("Templates Gallery", "templates", "Pre-built templates for common SaaS patterns.", True, 967),
+            ("Integration Guide", "integrations", "Connect Aceternity with your existing tools and workflows.", True, 312),
+            ("Roadmap", "roadmap", "What we're building next — public product roadmap.", False, 156),
+            ("Design System", "design-system", "Typography, colors, spacing, and component guidelines.", False, 89),
+            ("Team Handbook", "handbook", "Internal processes and team guidelines.", False, 45),
+            ("Migration Guide v2", "migration-v2", "Steps to migrate from v1 to v2 of the platform.", False, 23),
         ]
-        for name, color in label_data:
-            label = Label(name=name, color=color, project_id=proj.id)
-            db.add(label)
-            await db.flush()
-            labels[name] = label
+        for i, (title, slug, content, published, views) in enumerate(pages_data):
+            page = Page(
+                user_id=user.id,
+                title=title,
+                slug=slug,
+                content=content,
+                is_published=published,
+                views_count=views,
+                created_at=now - timedelta(days=30 - i),
+                updated_at=now - timedelta(days=max(0, 10 - i)),
+            )
+            db.add(page)
 
-        # Issues — Backlog
-        backlog_issues = [
-            (179, "Acebuilder V2", IssuePriority.NONE, "Manu", ["Document"]),
-            (148, "Easiest way to get clients (READ DESCRIPTION)", IssuePriority.URGENT, "Manu", ["Wisdom"]),
-            (213, "Change pricing for aceternity ui -- free / pro / custom. Keep bigger pricings on...", IssuePriority.URGENT, "Manu", []),
-            (208, "Aceternity UI Component", IssuePriority.URGENT, None, ["Task", "UI"]),
-            (120, "Reels recording", IssuePriority.MEDIUM, None, ["Task - Content"]),
-            (232, "Revamp algochurn", IssuePriority.NONE, None, []),
-            (166, "Screenshots from local", IssuePriority.NONE, None, ["Wisdom"]),
-            (116, "AI SaaS Template V2", IssuePriority.NONE, None, ["Task"]),
-            (185, "Real estate template for Aceternity UI Pro", IssuePriority.NONE, None, []),
+        # Activities
+        activities_data = [
+            ("Manu Arora", ActivityType.PAGE_VIEW, "Viewed Component Library page", 0.5),
+            ("Manu Arora", ActivityType.SETTINGS_CHANGE, "Updated billing settings", 1),
+            ("Manu Arora", ActivityType.EXPORT, "Exported analytics report for March 2026", 2),
+            ("Manu Arora", ActivityType.PAGE_VIEW, "Viewed API Documentation", 3),
+            ("Manu Arora", ActivityType.API_CALL, "Generated new API key", 4),
+            ("Manu Arora", ActivityType.UPLOAD, "Uploaded hero-banner.png to assets", 5),
+            ("Manu Arora", ActivityType.PAGE_VIEW, "Viewed Pricing Plans page", 6),
+            ("Manu Arora", ActivityType.SETTINGS_CHANGE, "Enabled custom domain feature", 8),
+            ("Manu Arora", ActivityType.LOGIN, "Logged in from Chrome on macOS", 10),
+            ("Manu Arora", ActivityType.PAGE_VIEW, "Viewed Getting Started guide", 12),
+            ("Manu Arora", ActivityType.EXPORT, "Exported page analytics as CSV", 16),
+            ("Manu Arora", ActivityType.API_CALL, "Called /api/v1/pages endpoint", 18),
+            ("Manu Arora", ActivityType.PAGE_VIEW, "Viewed Templates Gallery", 20),
+            ("Manu Arora", ActivityType.LOGIN, "Logged in from Safari on iPhone", 24),
+            ("Manu Arora", ActivityType.SETTINGS_CHANGE, "Updated notification preferences", 30),
+            ("Manu Arora", ActivityType.PAGE_VIEW, "Viewed Changelog", 36),
+            ("Manu Arora", ActivityType.SIGNUP, "Account created", 48),
         ]
-        for num, title, priority, assignee, issue_labels in backlog_issues:
-            issue = Issue(
-                number=num, title=title, status=IssueStatus.BACKLOG,
-                priority=priority, project_id=proj.id, assignee_name=assignee,
+        for user_name, action, description, hours_ago in activities_data:
+            activity = Activity(
+                user_id=user.id,
+                user_name=user_name,
+                action=action,
+                description=description,
+                created_at=now - timedelta(hours=hours_ago),
             )
-            issue.labels = [labels[l] for l in issue_labels]
-            db.add(issue)
+            db.add(activity)
 
-        # Issues — Todo
-        todo_issues = [
-            (228, "Optimize for chatgpt", IssuePriority.URGENT, "Manu", ["Improvement"]),
-            (199, "Youtube Recording", IssuePriority.URGENT, None, ["Task - Content"]),
-            (235, "Start Suri Electricals", IssuePriority.NONE, "Manu", []),
-            (225, "CLIENTS: Private Equity Firms, Law Firms, Venture Capitalists, Real Estate.", IssuePriority.NONE, "Manu", ["Long term", "Wisdom"]),
+        # Metrics
+        metric_names = ["page_views", "api_calls", "active_users", "bandwidth_mb"]
+        for day_offset in range(30):
+            day = now - timedelta(days=day_offset)
+            for name in metric_names:
+                base_values = {"page_views": 150, "api_calls": 80, "active_users": 12, "bandwidth_mb": 45}
+                import random
+                random.seed(day_offset * 100 + hash(name))
+                value = base_values[name] * (0.7 + random.random() * 0.6)
+                metric = Metric(
+                    user_id=user.id,
+                    name=name,
+                    value=round(value, 1),
+                    period=MetricPeriod.DAILY,
+                    recorded_at=day,
+                )
+                db.add(metric)
+
+        # Planning issues for admin kanban board
+        issues_data = [
+            ("Add Stripe subscription integration", "Integrate Stripe for payment processing and subscription management.", IssueStatus.todo, IssuePriority.urgent, "Feature", "Manu"),
+            ("Design onboarding flow for new users", "Create step-by-step onboarding with tooltips and guided tour.", IssueStatus.todo, IssuePriority.high, "Design", "Manu"),
+            ("Set up CI/CD pipeline", "Configure GitHub Actions for automated testing and deployment.", IssueStatus.in_progress, IssuePriority.high, "DevOps", "Manu"),
+            ("Implement dark mode toggle", "Add dark/light theme switch with system preference detection.", IssueStatus.backlog, IssuePriority.medium, "Feature", None),
+            ("Write API documentation", "Document all REST API endpoints with examples.", IssueStatus.in_progress, IssuePriority.medium, "Docs", "Manu"),
+            ("Add email notification system", "Transactional emails for account events and weekly digests.", IssueStatus.backlog, IssuePriority.medium, "Feature", None),
+            ("Fix mobile responsive layout issues", "Sidebar and dashboard cards break on small screens.", IssueStatus.todo, IssuePriority.high, "Bug", "Manu"),
+            ("Add user avatar upload", "Allow users to upload profile photos with image cropping.", IssueStatus.backlog, IssuePriority.low, "Feature", None),
+            ("Implement rate limiting on API", "Prevent abuse with per-user rate limits on API endpoints.", IssueStatus.backlog, IssuePriority.medium, "Security", None),
+            ("Create admin user management page", "List, search, edit, and deactivate user accounts.", IssueStatus.todo, IssuePriority.high, "Feature", "Manu"),
+            ("Add analytics export to CSV", "Let users download their analytics data as CSV files.", IssueStatus.backlog, IssuePriority.low, "Feature", None),
+            ("Set up error monitoring with Sentry", "Integrate Sentry for real-time error tracking in production.", IssueStatus.done, IssuePriority.high, "DevOps", "Manu"),
+            ("Add two-factor authentication", "TOTP-based 2FA for enhanced account security.", IssueStatus.backlog, IssuePriority.medium, "Security", None),
+            ("Refactor database queries for performance", "Optimize slow queries identified in production logs.", IssueStatus.in_progress, IssuePriority.medium, "Performance", "Manu"),
+            ("Create landing page A/B test", "Test two hero variants to optimize conversion rate.", IssueStatus.done, IssuePriority.medium, "Marketing", "Manu"),
+            ("Add webhook support for integrations", "Allow users to receive event webhooks at custom URLs.", IssueStatus.backlog, IssuePriority.low, "Feature", None),
+            ("Fix login session timeout bug", "Users are logged out after 30 min despite remember-me.", IssueStatus.done, IssuePriority.urgent, "Bug", "Manu"),
+            ("Implement search across all pages", "Full-text search with instant results dropdown.", IssueStatus.backlog, IssuePriority.medium, "Feature", None),
+            ("Write terms of service and privacy policy", "Legal pages required before public launch.", IssueStatus.cancelled, IssuePriority.low, "Legal", None),
+            ("Add keyboard shortcuts help modal", "Show available shortcuts when pressing ? key.", IssueStatus.backlog, IssuePriority.none, "Feature", None),
         ]
-        for num, title, priority, assignee, issue_labels in todo_issues:
+        for i, (title, desc, status, priority, label, assignee) in enumerate(issues_data):
             issue = Issue(
-                number=num, title=title, status=IssueStatus.TODO,
-                priority=priority, project_id=proj.id, assignee_name=assignee,
-            )
-            issue.labels = [labels[l] for l in issue_labels]
-            db.add(issue)
-
-        # Issues — In Progress
-        in_progress_issues = [
-            (243, "List of component blocks for Aceternity UI Pro", IssuePriority.HIGH, "Manu", []),
-            (250, "Add 4 new components everyday to Pro Aceternity.", IssuePriority.HIGH, "Manu", []),
-            (249, "Acebuilder launch checklist", IssuePriority.HIGH, "Manu", []),
-            (245, "Add description to all the components in Aceternity Pro", IssuePriority.HIGH, "Manu", []),
-            (244, "Add purchase stripe links directly on the website", IssuePriority.HIGH, "Manu", []),
-        ]
-        for num, title, priority, assignee, issue_labels in in_progress_issues:
-            issue = Issue(
-                number=num, title=title, status=IssueStatus.IN_PROGRESS,
-                priority=priority, project_id=proj.id, assignee_name=assignee,
-            )
-            issue.labels = [labels[l] for l in issue_labels]
-            db.add(issue)
-
-        # Issues — Done (bulk)
-        for i in range(133):
-            issue = Issue(
-                number=i + 1, title=f"Completed task #{i + 1}",
-                status=IssueStatus.DONE, priority=IssuePriority.NONE,
-                project_id=proj.id, assignee_name="Manu",
-            )
-            db.add(issue)
-
-        # Issues — Cancelled
-        for i in range(8):
-            issue = Issue(
-                number=300 + i, title=f"Cancelled task #{i + 1}",
-                status=IssueStatus.CANCELLED, priority=IssuePriority.NONE,
-                project_id=proj.id,
+                identifier=f"ACE-{i + 1}",
+                title=title,
+                description=desc,
+                status=status,
+                priority=priority,
+                label=label,
+                assignee=assignee,
+                sort_order=i,
+                created_by=user.id,
+                created_at=now - timedelta(days=20 - i),
             )
             db.add(issue)
 
         await db.commit()
         print("Seed data created successfully!")
-        print(f"  Workspace: {ws.name} (/{ws.slug})")
-        print(f"  Project: {proj.name} ({proj.prefix})")
-        print(f"  Board URL: /{ws.slug}/{proj.prefix}/board")
+        print(f"  User: {user.email} / demo1234 (admin)")
+        print(f"  Dashboard: /dashboard")
+        print(f"  Board: /dashboard/board (admin only)")
 
 
 if __name__ == "__main__":

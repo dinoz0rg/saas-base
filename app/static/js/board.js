@@ -1,43 +1,19 @@
 /**
- * Board page logic: CRUD, labels, drag-drop, search, filters,
+ * Board page logic: CRUD, drag-drop, search, filters,
  * view tabs, display/column menus, hidden columns, keyboard shortcuts.
  *
- * Expects globals: PROJECT_ID, BOARD_URL (set inline by board.html template).
+ * Expects globals: BOARD_URL (set inline by board.html template).
  * Depends on: app.js (animateOpen/Close, animateDropdown*, showToast, api).
  */
 
 let currentIssueId = null;
-let allLabels = [];
-
-// --- Labels ---
-async function loadLabels() {
-    allLabels = await api(`/api/projects/${PROJECT_ID}/labels`);
-}
-loadLabels();
-
-function renderLabelCheckboxes(container, selectedIds = []) {
-    container.innerHTML = allLabels.map(l => {
-        const checked = selectedIds.includes(l.id) ? 'checked' : '';
-        const colors = {red:'bg-red-500',orange:'bg-orange-500',amber:'bg-amber-500',green:'bg-green-500',teal:'bg-teal-500',blue:'bg-blue-500',purple:'bg-purple-500',gray:'bg-neutral-400'};
-        const dot = colors[l.color] || 'bg-neutral-400';
-        return `<label class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-neutral-200 cursor-pointer hover:bg-neutral-50 text-2xs">
-            <input type="checkbox" value="${l.id}" ${checked} class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500 w-3 h-3">
-            <span class="w-1.5 h-1.5 rounded-full ${dot}"></span>${l.name}
-        </label>`;
-    }).join('');
-}
-
-function getSelectedLabelIds(container) {
-    return [...container.querySelectorAll('input[type=checkbox]:checked')].map(c => c.value);
-}
 
 // --- Create Issue Modal ---
 function openCreateModal(status) {
     const modal = document.getElementById('create-modal');
     const form = document.getElementById('create-form');
     form.reset();
-    form.querySelector('[name=status]').value = status || 'backlog';
-    renderLabelCheckboxes(document.getElementById('create-labels-container'));
+    if (status) form.querySelector('[name=status]').value = status;
     const { content } = animateOpen(modal, '.modal-backdrop', '.modal-content');
     if (content) content.classList.add('anim-modal-in');
 }
@@ -54,11 +30,11 @@ async function submitCreateIssue(e) {
         description: form.description.value || null,
         status: form.status.value,
         priority: form.priority.value,
-        assignee_name: form.assignee_name.value || null,
-        label_ids: getSelectedLabelIds(document.getElementById('create-labels-container')),
+        assignee: form.assignee.value || null,
+        label: form.label.value || null,
     };
     try {
-        await api(`/api/projects/${PROJECT_ID}/issues`, { method: 'POST', body: data });
+        await api('/api/issues', { method: 'POST', body: data });
         closeCreateModal();
         showToast('Issue created');
         location.reload();
@@ -69,24 +45,14 @@ async function submitCreateIssue(e) {
 async function openIssueDetail(issueId) {
     currentIssueId = issueId;
     try {
-        const issue = await api(`/api/issues/${issueId}`);
-        document.getElementById('detail-identifier').textContent = issue.project_prefix + '-' + issue.number;
+        const issue = await api('/api/issues/' + issueId);
+        document.getElementById('detail-identifier').textContent = issue.identifier;
         document.getElementById('detail-title').value = issue.title;
         document.getElementById('detail-description').value = issue.description || '';
         document.getElementById('detail-status').value = issue.status;
         document.getElementById('detail-priority').value = issue.priority;
-        document.getElementById('detail-assignee').value = issue.assignee_name || '';
-        renderLabelCheckboxes(
-            document.getElementById('detail-labels-container'),
-            issue.labels.map(l => l.id)
-        );
-        // Add change listeners for label checkboxes
-        document.getElementById('detail-labels-container').querySelectorAll('input[type=checkbox]').forEach(cb => {
-            cb.addEventListener('change', () => {
-                const ids = getSelectedLabelIds(document.getElementById('detail-labels-container'));
-                updateCurrentIssue({ label_ids: ids });
-            });
-        });
+        document.getElementById('detail-assignee').value = issue.assignee || '';
+        document.getElementById('detail-label').value = issue.label || '';
         const panel = document.getElementById('detail-panel');
         const { content } = animateOpen(panel, '.panel-backdrop', '.panel-content');
         if (content) content.classList.add('anim-slide-in');
@@ -101,9 +67,8 @@ function closeDetailPanel() {
 async function updateCurrentIssue(fields) {
     if (!currentIssueId) return;
     try {
-        await api(`/api/issues/${currentIssueId}`, { method: 'PATCH', body: fields });
+        await api('/api/issues/' + currentIssueId, { method: 'PATCH', body: fields });
         showToast('Updated');
-        // If status changed, reload
         if (fields.status) location.reload();
     } catch (err) { showToast('Error: ' + err.message); }
 }
@@ -112,7 +77,7 @@ async function deleteCurrentIssue() {
     if (!currentIssueId) return;
     if (!confirm('Delete this issue?')) return;
     try {
-        await api(`/api/issues/${currentIssueId}`, { method: 'DELETE' });
+        await api('/api/issues/' + currentIssueId, { method: 'DELETE' });
         closeDetailPanel();
         showToast('Issue deleted');
         location.reload();
@@ -152,14 +117,13 @@ document.querySelectorAll('.drop-zone').forEach(zone => {
         const issueId = e.dataTransfer.getData('text/plain');
         const newStatus = zone.dataset.status;
         if (!issueId || !newStatus) return;
-        // Optimistic UI: move card
         if (draggedCard) {
             draggedCard.classList.remove('dragging');
             draggedCard.classList.add('anim-card');
             zone.appendChild(draggedCard);
         }
         try {
-            await api(`/api/issues/${issueId}`, { method: 'PATCH', body: { status: newStatus } });
+            await api('/api/issues/' + issueId, { method: 'PATCH', body: { status: newStatus } });
             showToast('Moved to ' + newStatus.replace('_', ' '));
             location.reload();
         } catch (err) {
@@ -192,22 +156,22 @@ function handleSearch(query) {
     }
     searchTimeout = setTimeout(async () => {
         try {
-            const issues = await api(`/api/projects/${PROJECT_ID}/issues`);
+            const issues = await api('/api/issues');
             const q = query.toLowerCase();
-            const matches = issues.filter(i => i.title.toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q) || `${i.project_prefix}-${i.number}`.toLowerCase().includes(q));
+            const matches = issues.filter(i => i.title.toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q) || i.identifier.toLowerCase().includes(q));
             const container = document.getElementById('search-results');
             if (!matches.length) {
                 container.innerHTML = '<div class="px-4 py-8 text-center text-sm text-neutral-400">No issues found</div>';
                 return;
             }
-            container.innerHTML = matches.slice(0, 20).map(i => {
-                const statusColors = {backlog:'bg-neutral-200',todo:'bg-neutral-200',in_progress:'bg-amber-100',done:'bg-green-100',cancelled:'bg-neutral-200',duplicate:'bg-neutral-200'};
-                return `<div class="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 cursor-pointer border-b border-neutral-50" onclick="closeSearchModal(); openIssueDetail('${i.id}')">
-                    <span class="text-2xs text-muted font-mono w-14 shrink-0">${i.project_prefix}-${i.number}</span>
-                    <span class="text-sm text-neutral-800 truncate flex-1">${i.title}</span>
-                    <span class="text-2xs px-1.5 py-0.5 rounded ${statusColors[i.status] || 'bg-neutral-200'}">${i.status.replace('_',' ')}</span>
-                </div>`;
-            }).join('');
+            const statusColors = {backlog:'bg-neutral-200',todo:'bg-neutral-200',in_progress:'bg-amber-100',done:'bg-green-100',cancelled:'bg-neutral-200'};
+            container.innerHTML = matches.slice(0, 20).map(i =>
+                '<div class="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 cursor-pointer border-b border-neutral-50" onclick="closeSearchModal(); openIssueDetail(\'' + i.id + '\')">' +
+                    '<span class="text-2xs text-muted font-mono w-14 shrink-0">' + i.identifier + '</span>' +
+                    '<span class="text-sm text-neutral-800 truncate flex-1">' + i.title + '</span>' +
+                    '<span class="text-2xs px-1.5 py-0.5 rounded ' + (statusColors[i.status] || 'bg-neutral-200') + '">' + i.status.replace('_',' ') + '</span>' +
+                '</div>'
+            ).join('');
         } catch (err) { console.error(err); }
     }, 200);
 }
@@ -242,7 +206,7 @@ function toggleDisplayMenu() {
 }
 function setGrouping(group) {
     document.querySelectorAll('.group-opt span').forEach(s => s.classList.add('hidden'));
-    document.querySelector(`.group-opt[data-group="${group}"] span`).classList.remove('hidden');
+    document.querySelector('.group-opt[data-group="' + group + '"] span').classList.remove('hidden');
     showToast('Grouped by ' + group);
     animateDropdownClose(document.getElementById('display-menu'));
 }
@@ -264,17 +228,6 @@ function toggleFilterMenu() {
     }
     animateDropdownClose(document.getElementById('display-menu'));
     closeAllColMenus();
-    // Render label filters
-    const container = document.getElementById('filter-labels-list');
-    if (allLabels.length) {
-        const colors = {red:'bg-red-500',orange:'bg-orange-500',amber:'bg-amber-500',green:'bg-green-500',teal:'bg-teal-500',blue:'bg-blue-500',purple:'bg-purple-500',gray:'bg-neutral-400'};
-        container.innerHTML = allLabels.map(l => {
-            const dot = colors[l.color] || 'bg-neutral-400';
-            return `<button onclick="applyFilter('label','${l.name}')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50 flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full ${dot}"></span>${l.name}
-            </button>`;
-        }).join('');
-    }
 }
 function applyFilter(type, value) {
     activeFilters[type] = value;
@@ -296,10 +249,10 @@ function clearFilters() {
 function renderActiveFilters() {
     const container = document.getElementById('active-filters');
     container.innerHTML = Object.entries(activeFilters).map(([type, value]) =>
-        `<span class="inline-flex items-center gap-1 px-2 py-0.5 text-2xs bg-blue-50 text-blue-700 rounded-md">
-            ${type}: ${value}
-            <button onclick="removeFilter('${type}')" class="hover:text-blue-900 ml-0.5">&times;</button>
-        </span>`
+        '<span class="inline-flex items-center gap-1 px-2 py-0.5 text-2xs bg-blue-50 text-blue-700 rounded-md">' +
+            type + ': ' + value +
+            ' <button onclick="removeFilter(\'' + type + '\')" class="hover:text-blue-900 ml-0.5">&times;</button>' +
+        '</span>'
     ).join('');
 }
 function applyAllFilters() {
@@ -309,12 +262,11 @@ function applyAllFilters() {
             show = show && card.dataset.priority === activeFilters.priority;
         }
         if (activeFilters.label) {
-            const cardLabels = (card.dataset.labels || '').toLowerCase();
-            show = show && cardLabels.includes(activeFilters.label.toLowerCase());
+            const cardLabel = (card.dataset.label || '').toLowerCase();
+            show = show && cardLabel.includes(activeFilters.label.toLowerCase());
         }
         card.style.display = show ? '' : 'none';
     });
-    // Update column counts
     document.querySelectorAll('.kanban-col').forEach(col => {
         const visible = col.querySelectorAll('.issue-card:not([style*="display: none"])').length;
         col.querySelector('.col-count').textContent = visible;
@@ -332,7 +284,7 @@ function closeAllColMenus() {
     document.querySelectorAll('[id^="col-menu-"]').forEach(m => animateDropdownClose(m));
 }
 function sortColumn(status, sortBy) {
-    const zone = document.querySelector(`.drop-zone[data-status="${status}"]`);
+    const zone = document.querySelector('.drop-zone[data-status="' + status + '"]');
     const cards = [...zone.querySelectorAll('.issue-card')];
     const priorityOrder = {urgent:0,high:1,medium:2,low:3,none:4};
     cards.sort((a, b) => {
@@ -382,7 +334,6 @@ function toggleHiddenList() {
 async function toggleHiddenColumn(status) {
     const container = document.getElementById('hidden-expanded-' + status);
     if (!container.classList.contains('hidden')) {
-        // Animate collapse
         container.style.transition = 'opacity 150ms ease-in, max-height 200ms ease-in';
         container.style.opacity = '0';
         container.style.maxHeight = '0';
@@ -395,15 +346,15 @@ async function toggleHiddenColumn(status) {
         return;
     }
     try {
-        const issues = await api(`/api/projects/${PROJECT_ID}/issues?status=${status}`);
+        const issues = await api('/api/issues?status=' + status);
         container.innerHTML = issues.slice(0, 15).map((i, idx) =>
-            `<div class="flex items-center gap-2 px-2 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50 rounded cursor-pointer" onclick="openIssueDetail('${i.id}')" style="opacity:0;transform:translateY(-4px);animation:cardIn 200ms ease-out ${idx * 30}ms forwards">
-                <span class="text-2xs text-muted font-mono">${i.project_prefix}-${i.number}</span>
-                <span class="truncate">${i.title}</span>
-            </div>`
+            '<div class="flex items-center gap-2 px-2 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50 rounded cursor-pointer" onclick="openIssueDetail(\'' + i.id + '\')" style="opacity:0;transform:translateY(-4px);animation:cardIn 200ms ease-out ' + (idx * 30) + 'ms forwards">' +
+                '<span class="text-2xs text-muted font-mono">' + i.identifier + '</span>' +
+                '<span class="truncate">' + i.title + '</span>' +
+            '</div>'
         ).join('') || '<div class="px-2 py-1.5 text-2xs text-neutral-400">No issues</div>';
         if (issues.length > 15) {
-            container.innerHTML += `<div class="px-2 py-1 text-2xs text-muted" style="opacity:0;animation:cardIn 200ms ease-out ${15 * 30}ms forwards">... and ${issues.length - 15} more</div>`;
+            container.innerHTML += '<div class="px-2 py-1 text-2xs text-muted" style="opacity:0;animation:cardIn 200ms ease-out ' + (15 * 30) + 'ms forwards">... and ' + (issues.length - 15) + ' more</div>';
         }
         container.classList.remove('hidden');
         container.style.opacity = '0';
@@ -440,12 +391,10 @@ document.addEventListener('keydown', (e) => {
         animateDropdownClose(document.getElementById('filter-menu'));
         closeAllColMenus();
     }
-    // Cmd/Ctrl+K for search
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         openSearchModal();
     }
-    // C for create (when no input focused)
     if (e.key === 'c' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName) &&
         document.getElementById('create-modal').classList.contains('hidden') &&
         document.getElementById('detail-panel').classList.contains('hidden') &&
@@ -456,5 +405,5 @@ document.addEventListener('keydown', (e) => {
 
 // --- Staggered card entrance ---
 document.querySelectorAll('.issue-card.anim-card').forEach((card, i) => {
-    card.style.animationDelay = `${i * 30}ms`;
+    card.style.animationDelay = (i * 30) + 'ms';
 });

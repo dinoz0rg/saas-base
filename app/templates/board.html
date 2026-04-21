@@ -1,231 +1,229 @@
 {% extends "base.html" %}
-{% block title %}{{ project.name }} › All issues{% endblock %}
+{% block title %}Planning Board{% endblock %}
 
 {% block body %}
-{% include "components/sidebar.html" %}
+<div class="flex h-screen w-full">
+    {% include "components/sidebar.html" %}
 
-<!-- Main content -->
-<main class="flex-1 flex flex-col min-w-0">
-    <!-- Top bar -->
-    <header class="h-11 border-b border-border flex items-center px-4 shrink-0">
-        <div class="flex items-center gap-1.5 text-sm">
-            <div class="flex items-center gap-1.5">
-                <a href="javascript:history.back()" class="p-0.5 hover:bg-neutral-100 rounded">
-                    <svg class="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/>
-                    </svg>
-                </a>
-                <a href="javascript:history.forward()" class="p-0.5 hover:bg-neutral-100 rounded">
-                    <svg class="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
-                    </svg>
-                </a>
-            </div>
-            <div class="flex items-center gap-1 ml-2">
-                <a href="/{{ workspace.slug }}/{{ project.prefix }}/board" class="p-0.5 hover:bg-neutral-100 rounded">
-                    <svg class="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </a>
-            </div>
-        </div>
-
-        <div class="flex items-center gap-2 mx-auto">
-            <span class="text-neutral-500 text-xs">{{ project.name }} ›</span>
-            <span class="font-medium text-xs">All issues</span>
-        </div>
-
-        <div class="flex items-center gap-2">
-            <button onclick="showToast('No new notifications')" class="p-1 hover:bg-neutral-100 rounded" title="Notifications">
-                <svg class="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
-                </svg>
-            </button>
-            <button onclick="openCreateModal()" class="p-1 hover:bg-neutral-100 rounded" title="New issue">
-                <svg class="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
-                </svg>
-            </button>
-        </div>
-    </header>
-
-    <!-- Sub-header with tabs and filter -->
-    <div class="h-10 border-b border-border flex items-center px-4 gap-1 shrink-0">
-        <div class="flex items-center gap-0.5" id="board-tabs">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-neutral-100">
-                <div class="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                    <span class="text-white text-[7px] font-bold">{{ project.prefix[0] }}</span>
-                </div>
-                {{ project.name }}
-            </span>
-            <button onclick="setViewTab('all')" data-tab="all" class="board-tab active inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs bg-neutral-50 font-medium text-neutral-800 cursor-pointer">
-                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/>
-                </svg>
-                All issues
-            </button>
-            <button onclick="setViewTab('active')" data-tab="active" class="board-tab inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs text-neutral-600 hover:bg-neutral-50 cursor-pointer">
-                <svg class="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="5"/>
-                </svg>
-                Active
-            </button>
-            <button onclick="setViewTab('backlog')" data-tab="backlog" class="board-tab inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs text-neutral-600 hover:bg-neutral-50 cursor-pointer">
-                <svg class="w-3 h-3 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
-                </svg>
-                Backlog
-            </button>
-        </div>
-
-        <div class="ml-auto flex items-center gap-2">
-            <div class="relative">
-                <button onclick="toggleDisplayMenu()" class="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-neutral-500 hover:bg-neutral-50 rounded-md">
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/>
-                    </svg>
-                    Display
-                </button>
-                <div id="display-menu" class="hidden absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-30">
-                    <div class="px-3 py-1.5 text-2xs font-medium text-muted uppercase">Grouping</div>
-                    <button onclick="setGrouping('status')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50 flex items-center justify-between group-opt" data-group="status">
-                        Status <span class="text-blue-500 text-2xs">✓</span>
-                    </button>
-                    <button onclick="setGrouping('priority')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50 flex items-center justify-between group-opt" data-group="priority">
-                        Priority <span class="text-blue-500 text-2xs hidden">✓</span>
-                    </button>
-                    <button onclick="setGrouping('assignee')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50 flex items-center justify-between group-opt" data-group="assignee">
-                        Assignee <span class="text-blue-500 text-2xs hidden">✓</span>
-                    </button>
-                    <div class="border-t border-neutral-100 my-1"></div>
-                    <div class="px-3 py-1.5 text-2xs font-medium text-muted uppercase">Display</div>
-                    <label class="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-neutral-50 cursor-pointer">
-                        <input type="checkbox" checked onchange="toggleLabels(this.checked)" class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500 w-3 h-3">
-                        Show labels
-                    </label>
-                    <label class="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-neutral-50 cursor-pointer">
-                        <input type="checkbox" checked onchange="toggleAssignees(this.checked)" class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500 w-3 h-3">
-                        Show assignees
-                    </label>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filter bar -->
-    <div class="h-9 border-b border-border flex items-center px-4 gap-2 shrink-0">
-        <div class="relative">
-            <button onclick="toggleFilterMenu()" class="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-neutral-500 hover:bg-neutral-50 rounded-md">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/>
-                </svg>
-                Filter
-            </button>
-            <div id="filter-menu" class="hidden absolute left-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-30">
-                <div class="px-3 py-1.5 text-2xs font-medium text-muted uppercase">Filter by priority</div>
-                <button onclick="applyFilter('priority','urgent')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">🔴 Urgent</button>
-                <button onclick="applyFilter('priority','high')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">🟠 High</button>
-                <button onclick="applyFilter('priority','medium')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">🟡 Medium</button>
-                <button onclick="applyFilter('priority','low')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">🔵 Low</button>
-                <button onclick="applyFilter('priority','none')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">⚪ No priority</button>
-                <div class="border-t border-neutral-100 my-1"></div>
-                <div class="px-3 py-1.5 text-2xs font-medium text-muted uppercase">Filter by label</div>
-                <div id="filter-labels-list" class="max-h-32 overflow-y-auto"></div>
-                <div class="border-t border-neutral-100 my-1"></div>
-                <button onclick="clearFilters()" class="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:bg-red-50">Clear all filters</button>
-            </div>
-        </div>
-        <div id="active-filters" class="flex items-center gap-1.5"></div>
-    </div>
-
-    <!-- Board columns -->
-    <div class="flex-1 flex overflow-x-auto">
-        {% set visible_statuses = [
-            ("backlog", "Backlog", "text-neutral-400", "○"),
-            ("todo", "Todo", "text-neutral-400", "○"),
-            ("in_progress", "In Progress", "text-amber-500", "◐"),
-        ] %}
-
-        {% for status_key, status_label, color_class, icon in visible_statuses %}
-        <div class="w-80 shrink-0 border-r border-border flex flex-col kanban-col"
-             data-status="{{ status_key }}"
-             id="col-{{ status_key }}">
-            <!-- Column header -->
-            <div class="flex items-center gap-2 px-4 py-3 sticky top-0 bg-white z-10">
-                <span class="{{ color_class }} text-base">{{ icon }}</span>
-                <span class="font-medium text-xs">{{ status_label }}</span>
-                <span class="text-xs text-muted col-count">{{ board[status_key]|length }}</span>
-                <div class="ml-auto flex items-center gap-1">
-                    <div class="relative">
-                        <button onclick="event.stopPropagation(); toggleColMenu('{{ status_key }}')" class="p-0.5 hover:bg-neutral-100 rounded text-muted">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/>
-                            </svg>
-                        </button>
-                        <div id="col-menu-{{ status_key }}" class="hidden absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-30">
-                            <button onclick="sortColumn('{{ status_key }}','priority')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">Sort by priority</button>
-                            <button onclick="sortColumn('{{ status_key }}','title')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">Sort by title</button>
-                            <button onclick="sortColumn('{{ status_key }}','created')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">Sort by newest</button>
-                            <div class="border-t border-neutral-100 my-1"></div>
-                            <button onclick="collapseColumn('{{ status_key }}')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">Collapse column</button>
-                        </div>
-                    </div>
-                    <button class="p-0.5 hover:bg-neutral-100 rounded text-muted add-issue-btn"
-                            onclick="event.stopPropagation(); openCreateModal('{{ status_key }}')">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+    <!-- Main content -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden my-2 mr-2 rounded-xl bg-white border border-border">
+        <!-- Top bar -->
+        <header class="h-11 border-b border-border flex items-center px-4 shrink-0 rounded-t-xl">
+            <div class="flex items-center gap-1.5 text-sm">
+                <div class="flex items-center gap-1.5">
+                    <a href="javascript:history.back()" class="p-0.5 hover:bg-neutral-100 rounded">
+                        <svg class="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/>
                         </svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Cards drop zone -->
-            <div class="flex-1 overflow-y-auto px-2 pb-4 space-y-2 scrollbar-thin drop-zone"
-                 data-status="{{ status_key }}">
-                {% for issue in board[status_key] %}
-                {% include "components/issue_card.html" %}
-                {% endfor %}
-            </div>
-        </div>
-        {% endfor %}
-
-        <!-- Hidden columns summary -->
-        <div class="w-64 shrink-0 p-4" id="hidden-columns-panel">
-            <div class="flex items-center gap-1.5 mb-3 cursor-pointer" onclick="toggleHiddenList()">
-                <svg class="w-3 h-3 text-muted transition-transform duration-200" id="hidden-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
-                </svg>
-                <span class="text-xs font-medium text-neutral-600">Hidden columns</span>
-            </div>
-
-            {% set hidden_statuses = [
-                ("done", "Done", "bg-blue-500", "✓"),
-                ("cancelled", "Cancelled", "bg-neutral-400", "✕"),
-                ("duplicate", "Duplicate", "bg-neutral-400", "⊘"),
-            ] %}
-
-            <div class="space-y-1 transition-all duration-200 ease-out" id="hidden-list">
-                {% for status_key, status_label, badge_color, icon in hidden_statuses %}
-                <div class="flex items-center justify-between py-2 px-2 rounded-md hover:bg-neutral-50 group cursor-pointer"
-                     onclick="toggleHiddenColumn('{{ status_key }}')">
-                    <div class="flex items-center gap-2">
-                        <span class="w-4 h-4 rounded-full {{ badge_color }} text-white text-2xs flex items-center justify-center font-bold">{{ icon }}</span>
-                        <span class="text-xs text-neutral-700">{{ status_label }}</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs text-muted" id="hidden-count-{{ status_key }}">{{ counts[status_key] }}</span>
-                        <svg class="w-3.5 h-3.5 text-neutral-300 opacity-0 group-hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    </a>
+                    <a href="javascript:history.forward()" class="p-0.5 hover:bg-neutral-100 rounded">
+                        <svg class="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
                         </svg>
+                    </a>
+                </div>
+                <div class="flex items-center gap-1 ml-2">
+                    <a href="/dashboard/board" class="p-0.5 hover:bg-neutral-100 rounded">
+                        <svg class="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 mx-auto">
+                <span class="text-neutral-500 text-xs">Planning Board ›</span>
+                <span class="font-medium text-xs">All issues</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="showToast('No new notifications')" class="p-1 hover:bg-neutral-100 rounded" title="Notifications">
+                    <svg class="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
+                    </svg>
+                </button>
+                <button onclick="openCreateModal()" class="p-1 hover:bg-neutral-100 rounded" title="New issue">
+                    <svg class="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Sub-header with tabs and filter -->
+        <div class="h-10 border-b border-border flex items-center px-4 gap-1 shrink-0">
+            <div class="flex items-center gap-0.5" id="board-tabs">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-neutral-100">
+                    <div class="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+                        <span class="text-white text-[7px] font-bold">A</span>
+                    </div>
+                    Planning Board
+                </span>
+                <button onclick="setViewTab('all')" data-tab="all" class="board-tab active inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs bg-neutral-50 font-medium text-neutral-800 cursor-pointer">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/>
+                    </svg>
+                    All issues
+                </button>
+                <button onclick="setViewTab('active')" data-tab="active" class="board-tab inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs text-neutral-600 hover:bg-neutral-50 cursor-pointer">
+                    <svg class="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="5"/>
+                    </svg>
+                    Active
+                </button>
+                <button onclick="setViewTab('backlog')" data-tab="backlog" class="board-tab inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs text-neutral-600 hover:bg-neutral-50 cursor-pointer">
+                    <svg class="w-3 h-3 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+                    </svg>
+                    Backlog
+                </button>
+            </div>
+
+            <div class="ml-auto flex items-center gap-2">
+                <div class="relative">
+                    <button onclick="toggleDisplayMenu()" class="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-neutral-500 hover:bg-neutral-50 rounded-md">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/>
+                        </svg>
+                        Display
+                    </button>
+                    <div id="display-menu" class="hidden absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-30">
+                        <div class="px-3 py-1.5 text-2xs font-medium text-muted uppercase">Grouping</div>
+                        <button onclick="setGrouping('status')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50 flex items-center justify-between group-opt" data-group="status">
+                            Status <span class="text-blue-500 text-2xs">✓</span>
+                        </button>
+                        <button onclick="setGrouping('priority')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50 flex items-center justify-between group-opt" data-group="priority">
+                            Priority <span class="text-blue-500 text-2xs hidden">✓</span>
+                        </button>
+                        <button onclick="setGrouping('assignee')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50 flex items-center justify-between group-opt" data-group="assignee">
+                            Assignee <span class="text-blue-500 text-2xs hidden">✓</span>
+                        </button>
+                        <div class="border-t border-neutral-100 my-1"></div>
+                        <div class="px-3 py-1.5 text-2xs font-medium text-muted uppercase">Display</div>
+                        <label class="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-neutral-50 cursor-pointer">
+                            <input type="checkbox" checked onchange="toggleLabels(this.checked)" class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500 w-3 h-3">
+                            Show labels
+                        </label>
+                        <label class="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-neutral-50 cursor-pointer">
+                            <input type="checkbox" checked onchange="toggleAssignees(this.checked)" class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500 w-3 h-3">
+                            Show assignees
+                        </label>
                     </div>
                 </div>
-                <!-- Expanded issue list for hidden column -->
-                <div id="hidden-expanded-{{ status_key }}" class="hidden ml-6 space-y-1 pb-2 overflow-hidden"></div>
-                {% endfor %}
             </div>
         </div>
-    </div>
-</main>
+
+        <!-- Filter bar -->
+        <div class="h-9 border-b border-border flex items-center px-4 gap-2 shrink-0">
+            <div class="relative">
+                <button onclick="toggleFilterMenu()" class="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-neutral-500 hover:bg-neutral-50 rounded-md">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/>
+                    </svg>
+                    Filter
+                </button>
+                <div id="filter-menu" class="hidden absolute left-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-30">
+                    <div class="px-3 py-1.5 text-2xs font-medium text-muted uppercase">Filter by priority</div>
+                    <button onclick="applyFilter('priority','urgent')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">🔴 Urgent</button>
+                    <button onclick="applyFilter('priority','high')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">🟠 High</button>
+                    <button onclick="applyFilter('priority','medium')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">🟡 Medium</button>
+                    <button onclick="applyFilter('priority','low')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">🔵 Low</button>
+                    <button onclick="applyFilter('priority','none')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">⚪ No priority</button>
+                    <div class="border-t border-neutral-100 my-1"></div>
+                    <button onclick="clearFilters()" class="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:bg-red-50">Clear all filters</button>
+                </div>
+            </div>
+            <div id="active-filters" class="flex items-center gap-1.5"></div>
+        </div>
+
+        <!-- Board columns -->
+        <div class="flex-1 flex overflow-x-auto">
+            {% set visible_statuses = [
+                ("backlog", "Backlog", "text-neutral-400", "○"),
+                ("todo", "Todo", "text-neutral-400", "○"),
+                ("in_progress", "In Progress", "text-amber-500", "◐"),
+            ] %}
+
+            {% for status_key, status_label, color_class, icon in visible_statuses %}
+            <div class="w-80 shrink-0 border-r border-border flex flex-col kanban-col"
+                 data-status="{{ status_key }}"
+                 id="col-{{ status_key }}">
+                <!-- Column header -->
+                <div class="flex items-center gap-2 px-4 py-3 sticky top-0 bg-white z-10">
+                    <span class="{{ color_class }} text-base">{{ icon }}</span>
+                    <span class="font-medium text-xs">{{ status_label }}</span>
+                    <span class="text-xs text-muted col-count">{{ board[status_key]|length }}</span>
+                    <div class="ml-auto flex items-center gap-1">
+                        <div class="relative">
+                            <button onclick="event.stopPropagation(); toggleColMenu('{{ status_key }}')" class="p-0.5 hover:bg-neutral-100 rounded text-muted">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/>
+                                </svg>
+                            </button>
+                            <div id="col-menu-{{ status_key }}" class="hidden absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-30">
+                                <button onclick="sortColumn('{{ status_key }}','priority')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">Sort by priority</button>
+                                <button onclick="sortColumn('{{ status_key }}','title')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">Sort by title</button>
+                                <button onclick="sortColumn('{{ status_key }}','created')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">Sort by newest</button>
+                                <div class="border-t border-neutral-100 my-1"></div>
+                                <button onclick="collapseColumn('{{ status_key }}')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50">Collapse column</button>
+                            </div>
+                        </div>
+                        <button class="p-0.5 hover:bg-neutral-100 rounded text-muted add-issue-btn"
+                                onclick="event.stopPropagation(); openCreateModal('{{ status_key }}')">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cards drop zone -->
+                <div class="flex-1 overflow-y-auto px-2 pb-4 space-y-2 scrollbar-thin drop-zone"
+                     data-status="{{ status_key }}">
+                    {% for issue in board[status_key] %}
+                    {% include "components/issue_card.html" %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Hidden columns summary -->
+            <div class="w-64 shrink-0 p-4" id="hidden-columns-panel">
+                <div class="flex items-center gap-1.5 mb-3 cursor-pointer" onclick="toggleHiddenList()">
+                    <svg class="w-3 h-3 text-muted transition-transform duration-200" id="hidden-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                    </svg>
+                    <span class="text-xs font-medium text-neutral-600">Hidden columns</span>
+                </div>
+
+                {% set hidden_statuses = [
+                    ("done", "Done", "bg-blue-500", "✓"),
+                    ("cancelled", "Cancelled", "bg-neutral-400", "✕"),
+                ] %}
+
+                <div class="space-y-1 transition-all duration-200 ease-out" id="hidden-list">
+                    {% for status_key, status_label, badge_color, icon in hidden_statuses %}
+                    <div class="flex items-center justify-between py-2 px-2 rounded-md hover:bg-neutral-50 group cursor-pointer"
+                         onclick="toggleHiddenColumn('{{ status_key }}')">
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 rounded-full {{ badge_color }} text-white text-2xs flex items-center justify-center font-bold">{{ icon }}</span>
+                            <span class="text-xs text-neutral-700">{{ status_label }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-muted" id="hidden-count-{{ status_key }}">{{ counts[status_key] }}</span>
+                            <svg class="w-3.5 h-3.5 text-neutral-300 opacity-0 group-hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- Expanded issue list for hidden column -->
+                    <div id="hidden-expanded-{{ status_key }}" class="hidden ml-6 space-y-1 pb-2 overflow-hidden"></div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
 
 <!-- Create Issue Modal -->
 <div id="create-modal" class="fixed inset-0 z-50 hidden">
@@ -261,14 +259,17 @@
                         </select>
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label class="block text-2xs font-medium text-muted mb-1">Assignee</label>
-                    <input type="text" name="assignee_name" placeholder="Assignee name"
-                           class="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="mb-1">
-                    <label class="block text-2xs font-medium text-muted mb-1">Labels</label>
-                    <div id="create-labels-container" class="flex flex-wrap gap-1.5"></div>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-2xs font-medium text-muted mb-1">Assignee</label>
+                        <input type="text" name="assignee" placeholder="Assignee name"
+                               class="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-2xs font-medium text-muted mb-1">Label</label>
+                        <input type="text" name="label" placeholder="e.g. Bug, Feature"
+                               class="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
                 </div>
             </div>
             <div class="flex items-center justify-end gap-2 px-5 py-3 border-t border-neutral-100">
@@ -314,7 +315,6 @@
                         <option value="in_progress">In Progress</option>
                         <option value="done">Done</option>
                         <option value="cancelled">Cancelled</option>
-                        <option value="duplicate">Duplicate</option>
                     </select>
                 </div>
                 <div class="flex items-center gap-3">
@@ -332,11 +332,13 @@
                     <span class="text-2xs font-medium text-muted w-20">Assignee</span>
                     <input type="text" id="detail-assignee" placeholder="Unassigned"
                            class="flex-1 px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                           onchange="updateCurrentIssue({assignee_name: this.value || null})">
+                           onchange="updateCurrentIssue({assignee: this.value || null})">
                 </div>
-                <div>
-                    <span class="text-2xs font-medium text-muted">Labels</span>
-                    <div id="detail-labels-container" class="flex flex-wrap gap-1.5 mt-2"></div>
+                <div class="flex items-center gap-3">
+                    <span class="text-2xs font-medium text-muted w-20">Label</span>
+                    <input type="text" id="detail-label" placeholder="e.g. Bug, Feature"
+                           class="flex-1 px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           onchange="updateCurrentIssue({label: this.value || null})">
                 </div>
             </div>
         </div>
@@ -366,12 +368,11 @@
 <div id="toast" class="fixed bottom-4 right-4 z-[100] hidden">
     <div class="bg-neutral-800 text-white text-xs px-4 py-2 rounded-lg shadow-lg"></div>
 </div>
+{% endblock %}
 
 {% block scripts %}
 <script>
-    const PROJECT_ID = "{{ project.id }}";
-    const BOARD_URL = "/{{ workspace.slug }}/{{ project.prefix }}/board";
+    const BOARD_URL = "/dashboard/board";
 </script>
 <script src="/static/js/board.js"></script>
-{% endblock %}
 {% endblock %}

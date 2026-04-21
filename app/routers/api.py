@@ -1,138 +1,125 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from pydantic import BaseModel
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
+from app.auth import require_admin
 from app.database import get_db
-from app.models.issue import Issue, IssueStatus, Label
-from app.schemas.issue import IssueCreate, IssueUpdate
-from app.services.issue import create_issue, update_issue
+from app.models.issue import Issue, IssueStatus, IssuePriority
+from app.models.user import User
 
-router = APIRouter(prefix="/api")
-
-
-@router.get("/projects/{project_id}/issues")
-async def api_list_issues(
-    project_id: str,
-    status: IssueStatus | None = None,
-    db: AsyncSession = Depends(get_db),
-):
-    query = (
-        select(Issue)
-        .where(Issue.project_id == project_id)
-        .options(selectinload(Issue.labels), selectinload(Issue.project))
-        .order_by(Issue.created_at.desc())
-    )
-    if status:
-        query = query.where(Issue.status == status)
-    result = await db.execute(query)
-    issues = result.scalars().all()
-    return [
-        {
-            "id": i.id,
-            "number": i.number,
-            "title": i.title,
-            "description": i.description,
-            "status": i.status.value,
-            "priority": i.priority.value,
-            "assignee_name": i.assignee_name,
-            "project_prefix": i.project.prefix,
-            "labels": [{"id": l.id, "name": l.name, "color": l.color} for l in i.labels],
-            "created_at": i.created_at.isoformat(),
-            "updated_at": i.updated_at.isoformat(),
-        }
-        for i in issues
-    ]
+router = APIRouter(prefix="/api", tags=["api"])
 
 
-@router.get("/issues/{issue_id}")
-async def api_get_issue(
-    issue_id: str,
-    db: AsyncSession = Depends(get_db),
-):
-    result = await db.execute(
-        select(Issue)
-        .where(Issue.id == issue_id)
-        .options(selectinload(Issue.labels), selectinload(Issue.project))
-    )
-    issue = result.scalar_one_or_none()
-    if not issue:
-        raise HTTPException(status_code=404, detail="Issue not found")
+class IssueCreate(BaseModel):
+    title: str
+    description: str | None = None
+    status: IssueStatus = IssueStatus.backlog
+    priority: IssuePriority = IssuePriority.none
+    label: str | None = None
+    assignee: str | None = None
+
+
+class IssueUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    status: IssueStatus | None = None
+    priority: IssuePriority | None = None
+    label: str | None = None
+    assignee: str | None = None
+    sort_order: int | None = None
+
+
+def _issue_dict(issue: Issue) -> dict:
     return {
         "id": issue.id,
-        "number": issue.number,
+        "identifier": issue.identifier,
         "title": issue.title,
         "description": issue.description,
         "status": issue.status.value,
         "priority": issue.priority.value,
-        "assignee_name": issue.assignee_name,
-        "project_prefix": issue.project.prefix,
-        "labels": [{"id": l.id, "name": l.name, "color": l.color} for l in issue.labels],
+        "label": issue.label,
+        "assignee": issue.assignee,
+        "sort_order": issue.sort_order,
+        "created_by": issue.created_by,
         "created_at": issue.created_at.isoformat(),
         "updated_at": issue.updated_at.isoformat(),
     }
 
 
-@router.post("/projects/{project_id}/issues")
-async def api_create_issue(
-    project_id: str,
-    data: IssueCreate,
+@router.get("/issues")
+async def list_issues(
+    status: IssueStatus | None = None,
+    user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    issue = await create_issue(db, project_id, data)
-    await db.flush()
-    # reload with relationships
-    result = await db.execute(
-        select(Issue)
-        .where(Issue.id == issue.id)
-        .options(selectinload(Issue.labels), selectinload(Issue.project))
+    q = select(Issue).order_by(Issue.sort_order, Issue.created_at.desc())
+    if status:
+        q = q.where(Issue.status == status)
+    result = await db.execute(q)
+    return [_issue_dict(i) for i in result.scalars().all()]
+
+
+@router.get("/issues/{issue_id}")
+async def get_issue(
+    issue_id: str,
+    user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Issue).where(Issue.id == issue_id))
+    issue = result.scalar_one_or_none()
+    if not issue:
+        raise HTTPException(status_code=404, detail="Issue not found")
+    return _issue_dict(issue)
+
+
+@router.post("/issues", status_code=201)
+async def create_issue(
+    data: IssueCreate,
+    user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    count = await db.scalar(select(func.count()).select_from(Issue))
+    identifier = f"ACE-{(count or 0) + 1}"
+    issue = Issue(
+        title=data.title,
+        description=data.description,
+        status=data.status,
+        priority=data.priority,
+        label=data.label,
+        assignee=data.assignee,
+        identifier=identifier,
+        created_by=user.id,
     )
-    issue = result.scalar_one()
-    return {
-        "id": issue.id,
-        "number": issue.number,
-        "title": issue.title,
-        "description": issue.description,
-        "status": issue.status.value,
-        "priority": issue.priority.value,
-        "assignee_name": issue.assignee_name,
-        "project_prefix": issue.project.prefix,
-        "labels": [{"id": l.id, "name": l.name, "color": l.color} for l in issue.labels],
-    }
+    db.add(issue)
+    await db.flush()
+    await db.refresh(issue)
+    return _issue_dict(issue)
 
 
 @router.patch("/issues/{issue_id}")
-async def api_update_issue(
+async def update_issue(
     issue_id: str,
     data: IssueUpdate,
+    user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    issue = await update_issue(db, issue_id, data)
+    result = await db.execute(select(Issue).where(Issue.id == issue_id))
+    issue = result.scalar_one_or_none()
     if not issue:
         raise HTTPException(status_code=404, detail="Issue not found")
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(issue, field, value)
+    db.add(issue)
     await db.flush()
-    result = await db.execute(
-        select(Issue)
-        .where(Issue.id == issue.id)
-        .options(selectinload(Issue.labels), selectinload(Issue.project))
-    )
-    issue = result.scalar_one()
-    return {
-        "id": issue.id,
-        "number": issue.number,
-        "title": issue.title,
-        "description": issue.description,
-        "status": issue.status.value,
-        "priority": issue.priority.value,
-        "assignee_name": issue.assignee_name,
-        "project_prefix": issue.project.prefix,
-        "labels": [{"id": l.id, "name": l.name, "color": l.color} for l in issue.labels],
-    }
+    await db.refresh(issue)
+    return _issue_dict(issue)
 
 
-@router.delete("/issues/{issue_id}")
-async def api_delete_issue(
+@router.delete("/issues/{issue_id}", status_code=204)
+async def delete_issue(
     issue_id: str,
+    user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Issue).where(Issue.id == issue_id))
@@ -140,16 +127,3 @@ async def api_delete_issue(
     if not issue:
         raise HTTPException(status_code=404, detail="Issue not found")
     await db.delete(issue)
-    return {"ok": True}
-
-
-@router.get("/projects/{project_id}/labels")
-async def api_list_labels(
-    project_id: str,
-    db: AsyncSession = Depends(get_db),
-):
-    result = await db.execute(
-        select(Label).where(Label.project_id == project_id).order_by(Label.name)
-    )
-    labels = result.scalars().all()
-    return [{"id": l.id, "name": l.name, "color": l.color} for l in labels]
