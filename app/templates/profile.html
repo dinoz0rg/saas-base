@@ -5,8 +5,16 @@
 {% block body %}
 <div class="flex h-screen w-full">
     {% include "components/sidebar.html" %}
+    <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-    <main class="flex-1 overflow-y-auto my-2 mr-2 rounded-xl bg-white border border-border">
+    <!-- Mobile sidebar toggle -->
+    <button id="sidebar-toggle" class="fixed top-3 left-3 z-40 p-1.5 bg-white border border-border rounded-lg shadow-sm hover:bg-neutral-50 lg:hidden hidden" onclick="toggleSidebar()">
+        <svg class="w-4 h-4 text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
+        </svg>
+    </button>
+
+    <main class="flex-1 overflow-y-auto my-2 mr-2 rounded-xl bg-white border border-border max-lg:ml-2">
         <!-- Top bar -->
         <div class="flex h-11 items-center justify-between border-b border-border px-4 rounded-t-xl">
             <div class="flex items-center gap-2 text-sm text-neutral-500">

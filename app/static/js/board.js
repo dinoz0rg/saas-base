@@ -86,20 +86,69 @@ async function deleteCurrentIssue() {
 
 // --- Drag & Drop ---
 let draggedCard = null;
+let dropIndicator = null;
+
+function createDropIndicator() {
+    const el = document.createElement('div');
+    el.className = 'drop-indicator';
+    return el;
+}
+
+function removeDropIndicator() {
+    if (dropIndicator && dropIndicator.parentNode) {
+        dropIndicator.parentNode.removeChild(dropIndicator);
+    }
+    dropIndicator = null;
+}
+
+function getClosestCardAfter(zone, y) {
+    const cards = [...zone.querySelectorAll('.issue-card:not(.dragging)')];
+    let closest = null;
+    let closestOffset = Number.NEGATIVE_INFINITY;
+    for (const card of cards) {
+        const box = card.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closestOffset) {
+            closestOffset = offset;
+            closest = card;
+        }
+    }
+    return closest;
+}
 
 document.addEventListener('dragstart', (e) => {
     const card = e.target.closest('.issue-card');
     if (!card) return;
     draggedCard = card;
-    card.classList.add('dragging');
+
+    // Custom drag image — slightly smaller semi-transparent clone
+    const ghost = card.cloneNode(true);
+    ghost.style.width = card.offsetWidth + 'px';
+    ghost.style.opacity = '0.85';
+    ghost.style.transform = 'rotate(2deg) scale(1.02)';
+    ghost.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.1)';
+    ghost.style.borderColor = '#3b82f6';
+    ghost.style.borderRadius = '8px';
+    ghost.style.position = 'absolute';
+    ghost.style.top = '-1000px';
+    ghost.style.left = '-1000px';
+    ghost.style.zIndex = '-1';
+    ghost.style.pointerEvents = 'none';
+    document.body.appendChild(ghost);
+    e.dataTransfer.setDragImage(ghost, card.offsetWidth / 2, 20);
+    setTimeout(() => document.body.removeChild(ghost), 0);
+
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', card.dataset.issueId);
+    requestAnimationFrame(() => card.classList.add('dragging'));
 });
 
-document.addEventListener('dragend', (e) => {
+document.addEventListener('dragend', () => {
     if (draggedCard) draggedCard.classList.remove('dragging');
     draggedCard = null;
+    removeDropIndicator();
     document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('drag-over'));
+    document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-target'));
 });
 
 document.querySelectorAll('.drop-zone').forEach(zone => {
@@ -107,25 +156,66 @@ document.querySelectorAll('.drop-zone').forEach(zone => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
         zone.classList.add('drag-over');
+        zone.closest('.kanban-col')?.classList.add('drag-target');
+
+        // Position the drop indicator
+        const afterCard = getClosestCardAfter(zone, e.clientY);
+        removeDropIndicator();
+        dropIndicator = createDropIndicator();
+        if (afterCard) {
+            zone.insertBefore(dropIndicator, afterCard);
+        } else {
+            zone.appendChild(dropIndicator);
+        }
     });
-    zone.addEventListener('dragleave', () => {
-        zone.classList.remove('drag-over');
+    zone.addEventListener('dragleave', (e) => {
+        // Only remove if actually leaving the zone
+        if (!zone.contains(e.relatedTarget)) {
+            zone.classList.remove('drag-over');
+            zone.closest('.kanban-col')?.classList.remove('drag-target');
+            removeDropIndicator();
+        }
     });
     zone.addEventListener('drop', async (e) => {
         e.preventDefault();
         zone.classList.remove('drag-over');
+        zone.closest('.kanban-col')?.classList.remove('drag-target');
         const issueId = e.dataTransfer.getData('text/plain');
         const newStatus = zone.dataset.status;
-        if (!issueId || !newStatus) return;
+        if (!issueId || !newStatus) { removeDropIndicator(); return; }
+
+        // Insert at the indicator position
+        const afterCard = getClosestCardAfter(zone, e.clientY);
+        removeDropIndicator();
         if (draggedCard) {
             draggedCard.classList.remove('dragging');
-            draggedCard.classList.add('anim-card');
-            zone.appendChild(draggedCard);
+            // Brief pop animation on drop
+            draggedCard.style.transition = 'transform 0.25s cubic-bezier(0.16,1,0.3,1), opacity 0.2s ease';
+            draggedCard.style.transform = 'scale(1.03)';
+            draggedCard.style.opacity = '1';
+            if (afterCard) {
+                zone.insertBefore(draggedCard, afterCard);
+            } else {
+                zone.appendChild(draggedCard);
+            }
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    draggedCard.style.transform = '';
+                    draggedCard.style.opacity = '';
+                }, 50);
+            });
         }
+
+        // Update column counts visually
+        document.querySelectorAll('.kanban-col').forEach(col => {
+            const count = col.querySelectorAll('.issue-card').length;
+            const countEl = col.querySelector('.col-count');
+            if (countEl) countEl.textContent = count;
+        });
+
         try {
             await api('/api/issues/' + issueId, { method: 'PATCH', body: { status: newStatus } });
             showToast('Moved to ' + newStatus.replace('_', ' '));
-            location.reload();
         } catch (err) {
             showToast('Error moving issue');
             location.reload();
@@ -193,22 +283,22 @@ function setViewTab(tab) {
     });
 }
 
+// --- Dropdown Manager (shared from app.js) ---
+const boardDropdowns = new DropdownManager();
+boardDropdowns.register('display-btn', 'display-menu');
+boardDropdowns.register('filter-btn', 'filter-menu');
+// Register column menus
+document.querySelectorAll('[id^="col-btn-"]').forEach(btn => {
+    const status = btn.id.replace('col-btn-', '');
+    boardDropdowns.register(btn, document.getElementById('col-menu-' + status));
+});
+
 // --- Display Menu ---
-function toggleDisplayMenu() {
-    const m = document.getElementById('display-menu');
-    if (m.classList.contains('hidden')) {
-        animateDropdownOpen(m);
-    } else {
-        animateDropdownClose(m);
-    }
-    animateDropdownClose(document.getElementById('filter-menu'));
-    closeAllColMenus();
-}
 function setGrouping(group) {
     document.querySelectorAll('.group-opt span').forEach(s => s.classList.add('hidden'));
     document.querySelector('.group-opt[data-group="' + group + '"] span').classList.remove('hidden');
     showToast('Grouped by ' + group);
-    animateDropdownClose(document.getElementById('display-menu'));
+    boardDropdowns.closeAll();
 }
 function toggleLabels(show) {
     document.querySelectorAll('.issue-card .card-labels').forEach(el => el.style.display = show ? '' : 'none');
@@ -219,19 +309,9 @@ function toggleAssignees(show) {
 
 // --- Filter Menu ---
 let activeFilters = {};
-function toggleFilterMenu() {
-    const m = document.getElementById('filter-menu');
-    if (m.classList.contains('hidden')) {
-        animateDropdownOpen(m);
-    } else {
-        animateDropdownClose(m);
-    }
-    animateDropdownClose(document.getElementById('display-menu'));
-    closeAllColMenus();
-}
 function applyFilter(type, value) {
     activeFilters[type] = value;
-    animateDropdownClose(document.getElementById('filter-menu'));
+    boardDropdowns.closeAll();
     renderActiveFilters();
     applyAllFilters();
 }
@@ -242,7 +322,7 @@ function removeFilter(type) {
 }
 function clearFilters() {
     activeFilters = {};
-    animateDropdownClose(document.getElementById('filter-menu'));
+    boardDropdowns.closeAll();
     renderActiveFilters();
     applyAllFilters();
 }
@@ -274,15 +354,6 @@ function applyAllFilters() {
 }
 
 // --- Column menus ---
-function toggleColMenu(status) {
-    const menu = document.getElementById('col-menu-' + status);
-    const wasHidden = menu.classList.contains('hidden');
-    closeAllColMenus();
-    if (wasHidden) animateDropdownOpen(menu);
-}
-function closeAllColMenus() {
-    document.querySelectorAll('[id^="col-menu-"]').forEach(m => animateDropdownClose(m));
-}
 function sortColumn(status, sortBy) {
     const zone = document.querySelector('.drop-zone[data-status="' + status + '"]');
     const cards = [...zone.querySelectorAll('.issue-card')];
@@ -294,14 +365,14 @@ function sortColumn(status, sortBy) {
         return 0;
     });
     cards.forEach(c => zone.appendChild(c));
-    closeAllColMenus();
+    boardDropdowns.closeAll();
     showToast('Sorted by ' + sortBy);
 }
 function collapseColumn(status) {
     const col = document.getElementById('col-' + status);
     const zone = col.querySelector('.drop-zone');
     zone.classList.toggle('collapsed');
-    closeAllColMenus();
+    boardDropdowns.closeAll();
 }
 
 // --- Hidden columns ---
@@ -368,28 +439,12 @@ async function toggleHiddenColumn(status) {
     } catch (err) { showToast('Error loading issues'); }
 }
 
-// --- Close dropdowns on outside click ---
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('#display-menu') && !e.target.closest('[onclick*="toggleDisplayMenu"]')) {
-        animateDropdownClose(document.getElementById('display-menu'));
-    }
-    if (!e.target.closest('#filter-menu') && !e.target.closest('[onclick*="toggleFilterMenu"]')) {
-        animateDropdownClose(document.getElementById('filter-menu'));
-    }
-    if (!e.target.closest('[id^="col-menu-"]') && !e.target.closest('[onclick*="toggleColMenu"]')) {
-        closeAllColMenus();
-    }
-});
-
-// Keyboard shortcuts
+// Keyboard shortcuts (dropdowns Escape handled by DropdownManager)
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         closeCreateModal();
         closeDetailPanel();
         closeSearchModal();
-        animateDropdownClose(document.getElementById('display-menu'));
-        animateDropdownClose(document.getElementById('filter-menu'));
-        closeAllColMenus();
     }
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();

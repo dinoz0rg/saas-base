@@ -38,6 +38,71 @@ function animateDropdownClose(menu) {
     setTimeout(() => { menu.classList.add('hidden'); menu.classList.remove('anim-dropdown-out'); }, 120);
 }
 
+/**
+ * Shared dropdown manager.
+ * Registers trigger→panel pairs, handles toggle, outside-click, and Escape.
+ *
+ * Usage:
+ *   const dm = new DropdownManager();
+ *   dm.register('my-btn', 'my-menu');          // by element id
+ *   dm.register(btnEl, menuEl);                // by element reference
+ *   dm.register('my-btn', 'my-menu', { onOpen, onClose, closeOthers: true });
+ *
+ * The panel element should have class="hidden dropdown-panel ..." (or any
+ * element — the animation classes are added automatically).
+ */
+class DropdownManager {
+    constructor() {
+        this._entries = [];
+        this._listening = false;
+    }
+    _el(ref) { return typeof ref === 'string' ? document.getElementById(ref) : ref; }
+    register(trigger, panel, opts = {}) {
+        const entry = { trigger: this._el(trigger), panel: this._el(panel), opts };
+        if (!entry.trigger || !entry.panel) return;
+        entry.trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggle(entry);
+        });
+        this._entries.push(entry);
+        if (!this._listening) {
+            this._listening = true;
+            document.addEventListener('click', (e) => this._outsideClick(e));
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') this.closeAll();
+            });
+        }
+    }
+    toggle(entry) {
+        const isHidden = entry.panel.classList.contains('hidden');
+        // Close others first (default: true)
+        if (entry.opts.closeOthers !== false) {
+            this._entries.forEach(en => { if (en !== entry) this._close(en); });
+        }
+        if (isHidden) { this._open(entry); } else { this._close(entry); }
+    }
+    _open(entry) {
+        animateDropdownOpen(entry.panel);
+        if (entry.opts.onOpen) entry.opts.onOpen(entry.panel);
+    }
+    _close(entry) {
+        animateDropdownClose(entry.panel);
+        if (entry.opts.onClose) entry.opts.onClose(entry.panel);
+    }
+    closeAll() {
+        this._entries.forEach(en => this._close(en));
+    }
+    _outsideClick(e) {
+        this._entries.forEach(entry => {
+            if (!entry.panel.classList.contains('hidden') &&
+                !entry.panel.contains(e.target) &&
+                !entry.trigger.contains(e.target)) {
+                this._close(entry);
+            }
+        });
+    }
+}
+
 // --- Toast ---
 let toastTimer;
 function showToast(msg) {
@@ -52,6 +117,21 @@ function showToast(msg) {
         t.classList.add('anim-toast-out');
         setTimeout(() => { t.classList.add('hidden'); t.classList.remove('anim-toast-out'); }, 200);
     }, 2000);
+}
+
+// --- Responsive sidebar toggle ---
+function toggleSidebar() {
+    const sidebar = document.getElementById('app-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (!sidebar) return;
+    const isOpen = sidebar.classList.contains('sidebar-open');
+    if (isOpen) {
+        sidebar.classList.remove('sidebar-open');
+        if (overlay) overlay.classList.remove('active');
+    } else {
+        sidebar.classList.add('sidebar-open');
+        if (overlay) overlay.classList.add('active');
+    }
 }
 
 // --- Fetch helpers ---

@@ -1,7 +1,7 @@
 <!-- Sidebar -->
 {% set base_url = "/dashboard" %}
 {% set current_path = request.url.path %}
-<aside class="w-56 bg-sidebar flex flex-col h-full shrink-0">
+<aside id="app-sidebar" class="w-56 bg-sidebar flex flex-col h-full shrink-0 max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-30 max-lg:shadow-xl max-lg:transition-transform max-lg:duration-200 max-lg:-translate-x-full">
     <!-- App header -->
     <div class="px-3 pt-3 pb-1">
         <a href="{{ base_url }}/settings" class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-neutral-100 cursor-pointer">
