@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_user, require_admin
 from app.database import get_db
 from app.models.workspace import Activity, Metric, Page
 from app.models.user import User
@@ -74,12 +74,11 @@ async def overview(
 @router.get("/analytics", response_class=HTMLResponse)
 async def analytics(
     request: Request,
-    user: User = Depends(require_user),
+    user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
         select(Metric)
-        .where(Metric.user_id == user.id)
         .order_by(Metric.recorded_at.desc())
         .limit(100)
     )
@@ -87,7 +86,6 @@ async def analytics(
 
     result = await db.execute(
         select(Page)
-        .where(Page.user_id == user.id)
         .order_by(Page.views_count.desc())
     )
     pages = result.scalars().all()
@@ -95,28 +93,31 @@ async def analytics(
     total_views = sum(p.views_count for p in pages)
     published_count = sum(1 for p in pages if p.is_published)
 
+    # User count for admin overview
+    user_count = (await db.execute(select(func.count(User.id)))).scalar() or 0
+
     return templates.TemplateResponse("page_dashboard.html", {
         "request": request,
         "user": user,
         "active_page": "analytics",
         "page_title": "Analytics",
-        "page_description": "Usage metrics and insights for your account.",
+        "page_description": "Aggregated usage metrics and insights across all users.",
         "metrics": metrics,
         "pages": pages,
         "total_views": total_views,
         "published_count": published_count,
+        "user_count": user_count,
     })
 
 
 @router.get("/activity", response_class=HTMLResponse)
 async def activity_log(
     request: Request,
-    user: User = Depends(require_user),
+    user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
         select(Activity)
-        .where(Activity.user_id == user.id)
         .order_by(Activity.created_at.desc())
         .limit(50)
     )
@@ -127,7 +128,7 @@ async def activity_log(
         "user": user,
         "active_page": "activity",
         "page_title": "Activity",
-        "page_description": "All recent activity on your account.",
+        "page_description": "Recent activity across all users.",
         "activities": activities,
     })
 
