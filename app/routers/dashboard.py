@@ -46,10 +46,10 @@ async def overview(
     )).scalar() or 0
 
     stats = [
-        {"label": "Total Views", "value": f"{total_views:,}", "icon": "eye", "color": "blue", "change": 12},
-        {"label": "Published", "value": str(published_count), "icon": "doc", "color": "emerald", "change": 8},
-        {"label": "Pages", "value": str(page_count), "icon": "doc", "color": "violet", "change": 3},
-        {"label": "Actions", "value": str(activity_count), "icon": "bolt", "color": "amber", "change": 24},
+        {"label": "Total Views", "value": f"{total_views:,}", "icon": "eye", "bg": "rgb(66, 242, 114)", "change": 12},
+        {"label": "Published", "value": str(published_count), "icon": "doc", "bg": "rgb(130, 252, 78)", "change": 8},
+        {"label": "Pages", "value": str(page_count), "icon": "doc", "bg": "rgb(210, 252, 67)", "change": 3},
+        {"label": "Actions", "value": str(activity_count), "icon": "bolt", "bg": "rgb(250, 240, 60)", "change": 24},
     ]
 
     # Top pages
