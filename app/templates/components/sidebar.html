@@ -161,9 +161,13 @@
     <div class="px-3 py-2">
         <div class="flex items-center gap-2.5 px-2 py-1.5">
             <a href="/profile" class="flex items-center gap-2.5 flex-1 min-w-0 rounded-md hover:bg-neutral-100 {% if active_page == 'profile' %}bg-neutral-100{% endif %} -mx-2 -my-1.5 px-2 py-1.5">
+                {% if user.avatar_url %}
+                <img src="{{ user.avatar_url }}" alt="" class="w-5 h-5 rounded-full object-cover shrink-0">
+                {% else %}
                 <div class="w-5 h-5 rounded-full bg-neutral-900 flex items-center justify-center shrink-0">
                     <span class="text-white text-2xs font-semibold">{{ user.display_name[0]|upper }}</span>
                 </div>
+                {% endif %}
                 <span class="text-xs text-neutral-700 truncate">{{ user.display_name }}</span>
             </a>
             <a href="/logout" class="text-muted hover:text-neutral-700 shrink-0" title="Sign out">
