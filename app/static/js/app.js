@@ -134,30 +134,9 @@ function toggleSidebar() {
     }
 }
 
-// --- Search modal ---
-function openSearchModal() {
-    const modal = document.getElementById('search-modal');
-    if (!modal) return;
-    modal.classList.remove('hidden');
-    const input = document.getElementById('search-input');
-    if (input) { input.value = ''; input.focus(); }
-    handleSearch('');
-}
-function closeSearchModal() {
-    const modal = document.getElementById('search-modal');
-    if (!modal || modal.classList.contains('hidden')) return;
-    modal.classList.add('hidden');
-}
-function handleSearch(query) {
-    const results = document.getElementById('search-results');
-    if (!results) return;
-    const items = results.querySelectorAll('.search-result-item');
-    const q = query.toLowerCase().trim();
-    items.forEach(item => {
-        const text = item.textContent.toLowerCase();
-        item.style.display = (!q || text.includes(q)) ? '' : 'none';
-    });
-}
+// --- Search / Navigator modal (delegates to Navigator if available) ---
+function openSearchModal() { if (typeof Navigator !== 'undefined') Navigator.open(); }
+function closeSearchModal() { if (typeof Navigator !== 'undefined') Navigator.close(); }
 
 // --- Workspace dropdown (auto-init) ---
 document.addEventListener('DOMContentLoaded', function() {
@@ -173,10 +152,10 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('keydown', function(e) {
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        openSearchModal();
+        if (typeof Navigator !== 'undefined') Navigator.toggle();
     }
     if (e.key === 'Escape') {
-        closeSearchModal();
+        if (typeof Navigator !== 'undefined') Navigator.close();
     }
 });
 
