@@ -1,15 +1,22 @@
 import uuid
+import io
+import base64
 from pathlib import Path
 
+import pyotp
+import qrcode
 from fastapi import APIRouter, Depends, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import get_current_user, require_user, verify_password, hash_password
+from app.auth import (
+    get_current_user, require_user, verify_password, hash_password,
+    create_access_token, set_auth_cookie, create_session, decode_token,
+)
 from app.database import get_db
-from app.models.user import User
+from app.models.user import User, UserSession
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -149,3 +156,142 @@ async def profile_avatar(
     await db.flush()
 
     return JSONResponse({"ok": True, "avatar_url": user.avatar_url})
+
+
+# ── 2FA Endpoints ──
+
+@router.post("/profile/2fa/setup")
+async def setup_2fa(
+    request: Request,
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    secret = pyotp.random_base32()
+    user.totp_secret = secret
+    await db.flush()
+
+    totp = pyotp.TOTP(secret)
+    provisioning_uri = totp.provisioning_uri(name=user.email, issuer_name="Aceternity")
+
+    # Generate QR code as base64
+    img = qrcode.make(provisioning_uri)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    qr_b64 = base64.b64encode(buf.getvalue()).decode()
+
+    return JSONResponse({
+        "ok": True,
+        "secret": secret,
+        "qr_code": f"data:image/png;base64,{qr_b64}",
+    })
+
+
+@router.post("/profile/2fa/verify")
+async def verify_2fa(
+    request: Request,
+    code: str = Form(...),
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not user.totp_secret:
+        return JSONResponse({"ok": False, "error": "2FA not set up"}, status_code=400)
+
+    totp = pyotp.TOTP(user.totp_secret)
+    if not totp.verify(code.strip(), valid_window=1):
+        return JSONResponse({"ok": False, "error": "Invalid code. Please try again."}, status_code=400)
+
+    user.totp_enabled = True
+    await db.flush()
+    return JSONResponse({"ok": True})
+
+
+@router.post("/profile/2fa/disable")
+async def disable_2fa(
+    request: Request,
+    password: str = Form(...),
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not verify_password(password, user.hashed_password):
+        return JSONResponse({"ok": False, "error": "Incorrect password"}, status_code=400)
+
+    user.totp_secret = None
+    user.totp_enabled = False
+    await db.flush()
+    return JSONResponse({"ok": True})
+
+
+# ── Session Endpoints ──
+
+@router.get("/api/sessions")
+async def list_sessions(
+    request: Request,
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(UserSession)
+        .where(UserSession.user_id == user.id, UserSession.is_active.is_(True))
+        .order_by(UserSession.last_active.desc())
+    )
+    sessions = result.scalars().all()
+
+    current_sid = getattr(request.state, "session_id", None)
+
+    data = []
+    for s in sessions:
+        data.append({
+            "id": s.id,
+            "browser": s.browser or "Unknown",
+            "os": s.os or "Unknown",
+            "ip_address": s.ip_address or "Unknown",
+            "last_active": s.last_active.isoformat() if s.last_active else None,
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+            "is_current": s.id == current_sid,
+        })
+
+    return JSONResponse({"ok": True, "sessions": data})
+
+
+@router.delete("/api/sessions/{session_id}")
+async def revoke_session(
+    session_id: str,
+    request: Request,
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(UserSession).where(
+            UserSession.id == session_id,
+            UserSession.user_id == user.id,
+            UserSession.is_active.is_(True),
+        )
+    )
+    sess = result.scalar_one_or_none()
+    if not sess:
+        return JSONResponse({"ok": False, "error": "Session not found"}, status_code=404)
+
+    sess.is_active = False
+    db.add(sess)
+    await db.flush()
+    return JSONResponse({"ok": True})
+
+
+@router.post("/api/sessions/revoke-others")
+async def revoke_other_sessions(
+    request: Request,
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    current_sid = getattr(request.state, "session_id", None)
+    await db.execute(
+        update(UserSession)
+        .where(
+            UserSession.user_id == user.id,
+            UserSession.is_active.is_(True),
+            UserSession.id != current_sid,
+        )
+        .values(is_active=False)
+    )
+    await db.flush()
+    return JSONResponse({"ok": True})
