@@ -134,6 +134,52 @@ function toggleSidebar() {
     }
 }
 
+// --- Search modal ---
+function openSearchModal() {
+    const modal = document.getElementById('search-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    const input = document.getElementById('search-input');
+    if (input) { input.value = ''; input.focus(); }
+    handleSearch('');
+}
+function closeSearchModal() {
+    const modal = document.getElementById('search-modal');
+    if (!modal || modal.classList.contains('hidden')) return;
+    modal.classList.add('hidden');
+}
+function handleSearch(query) {
+    const results = document.getElementById('search-results');
+    if (!results) return;
+    const items = results.querySelectorAll('.search-result-item');
+    const q = query.toLowerCase().trim();
+    items.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = (!q || text.includes(q)) ? '' : 'none';
+    });
+}
+
+// --- Workspace dropdown (auto-init) ---
+document.addEventListener('DOMContentLoaded', function() {
+    const trigger = document.getElementById('workspace-trigger');
+    const menu = document.getElementById('workspace-menu');
+    if (trigger && menu) {
+        const dm = new DropdownManager();
+        dm.register(trigger, menu);
+    }
+});
+
+// --- Keyboard shortcuts (global) ---
+document.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        openSearchModal();
+    }
+    if (e.key === 'Escape') {
+        closeSearchModal();
+    }
+});
+
 // --- Fetch helpers ---
 async function api(url, opts = {}) {
     opts.headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
