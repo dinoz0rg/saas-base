@@ -17,8 +17,9 @@ Best-of-the-best guidelines compiled from 5 skill collections: Karpathy, Claude 
 | **RESEARCH-METHODOLOGY.md** | 125 | deer-flow | 4-phase deep research methodology, search strategies, temporal awareness, quality bar |
 | **PLANNING-GUIDE.md** | 154 | hermes-agent | Implementation planning, bite-sized tasks, plan document structure, writing process, common mistakes |
 | **GITHUB-WORKFLOW.md** | 193 | hermes-agent | PR lifecycle, branch/commit conventions, CI monitoring, issues management, code review commands |
+| **PROJECT-CONVENTIONS.md** | 34 | project-specific | Frontend asset organization: no inline JS/CSS, file naming, current JS file inventory |
 
-**Total: 9 files, ~1,450 lines of actionable guidelines.**
+**Total: 10 files, ~1,480 lines of actionable guidelines.**
 
 ---
 
