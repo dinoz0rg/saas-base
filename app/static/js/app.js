@@ -103,20 +103,156 @@ class DropdownManager {
     }
 }
 
-// --- Toast ---
-let toastTimer;
-function showToast(msg) {
-    const t = document.getElementById('toast');
-    if (!t) return;
-    t.querySelector('div').textContent = msg;
-    clearTimeout(toastTimer);
-    t.classList.remove('hidden', 'anim-toast-out');
-    t.classList.add('anim-toast-in');
-    toastTimer = setTimeout(() => {
-        t.classList.remove('anim-toast-in');
-        t.classList.add('anim-toast-out');
-        setTimeout(() => { t.classList.add('hidden'); t.classList.remove('anim-toast-out'); }, 200);
-    }, 2000);
+// --- Toast System ---
+// Variants: 'default' | 'success' | 'destructive' | 'warning' | 'info'
+const Toast = (() => {
+    const MAX_VISIBLE = 10;
+    const AUTO_DISMISS = 5000;
+    const EXIT_DURATION = 400;
+    let _id = 0;
+    let _toasts = [];
+    let _hovered = false;
+    let _container = null;
+
+    const icons = {
+        default:     '<svg class="w-5 h-5 shrink-0 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>',
+        success:     '<svg class="w-5 h-5 shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>',
+        destructive: '<svg class="w-5 h-5 shrink-0 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+        warning:     '<svg class="w-5 h-5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+        info:        '<svg class="w-5 h-5 shrink-0 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>',
+    };
+
+    const variantStyles = {
+        default:     'bg-white border border-neutral-200',
+        success:     'border-l-4 border-l-green-500 border-y border-r border-green-200 bg-green-50 text-green-900',
+        destructive: 'border-l-4 border-l-red-500 border-y border-r border-red-200 bg-red-50 text-red-900',
+        warning:     'border-l-4 border-l-amber-500 border-y border-r border-amber-200 bg-amber-50 text-amber-900',
+        info:        'border-l-4 border-l-blue-500 border-y border-r border-blue-200 bg-blue-50 text-blue-900',
+    };
+
+    const closeStyles = {
+        default:     'text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100',
+        success:     'text-green-600 hover:text-green-700 hover:bg-green-100',
+        destructive: 'text-red-600 hover:text-red-700 hover:bg-red-100',
+        warning:     'text-amber-600 hover:text-amber-700 hover:bg-amber-100',
+        info:        'text-blue-600 hover:text-blue-700 hover:bg-blue-100',
+    };
+
+    function _ensureContainer() {
+        if (_container) return _container;
+        _container = document.createElement('div');
+        _container.id = 'toast-container';
+        _container.className = 'fixed bottom-0 right-0 z-[100] flex flex-col p-4 w-full sm:max-w-[420px] pointer-events-none';
+        _container.innerHTML = '<div class="relative pointer-events-auto flex flex-col gap-2" id="toast-list"></div>';
+        document.body.appendChild(_container);
+        const list = _container.querySelector('#toast-list');
+        list.addEventListener('mouseenter', () => { _hovered = true; _pauseAll(); });
+        list.addEventListener('mouseleave', () => { _hovered = false; _resumeAll(); });
+        return _container;
+    }
+
+    function _pauseAll() {
+        _toasts.forEach(t => {
+            if (t.timerId) {
+                clearTimeout(t.timerId);
+                t.remaining = Math.max(0, t.remaining - (Date.now() - t.startTime));
+                t.timerId = null;
+            }
+        });
+    }
+
+    function _resumeAll() {
+        _toasts.forEach(t => {
+            if (!t.exiting && t.remaining > 0) {
+                t.startTime = Date.now();
+                t.timerId = setTimeout(() => _dismiss(t.id), t.remaining);
+            }
+        });
+    }
+
+    function _dismiss(id) {
+        const t = _toasts.find(x => x.id === id);
+        if (!t || t.exiting) return;
+        t.exiting = true;
+        if (t.timerId) clearTimeout(t.timerId);
+        const el = t.el;
+        el.style.transform = 'translateY(20px) scale(0.9)';
+        el.style.opacity = '0';
+        el.style.filter = 'blur(2px)';
+        setTimeout(() => {
+            _toasts = _toasts.filter(x => x.id !== id);
+            el.remove();
+            _updateVisibility();
+        }, EXIT_DURATION);
+    }
+
+    function _updateVisibility() {
+        const list = document.getElementById('toast-list');
+        if (!list) return;
+        const items = list.children;
+        for (let i = 0; i < items.length; i++) {
+            items[i].style.display = i < MAX_VISIBLE ? 'block' : 'none';
+        }
+    }
+
+    function show(msg, variant) {
+        if (!variant) variant = 'default';
+        _ensureContainer();
+        const id = ++_id;
+        const v = variantStyles[variant] || variantStyles.default;
+        const icon = icons[variant] || icons.default;
+        const closeCls = closeStyles[variant] || closeStyles.default;
+
+        const wrapper = document.createElement('div');
+        wrapper.style.transition = `all ${EXIT_DURATION}ms ease-out`;
+        wrapper.style.transform = 'translateY(100%) scale(0.9)';
+        wrapper.style.opacity = '0';
+
+        wrapper.innerHTML = `<div class="relative flex w-full items-center gap-3 overflow-hidden rounded-lg py-4 px-4 pr-10 shadow-lg ${v}" role="alert">
+            <div class="flex items-start gap-3">
+                ${icon}
+                <div class="text-sm opacity-90">${_escHtml(msg)}</div>
+            </div>
+            <button type="button" class="absolute right-3 top-3 rounded-md p-1 opacity-70 transition-all duration-200 hover:opacity-100 ${closeCls}" aria-label="Dismiss">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+        </div>`;
+
+        wrapper.querySelector('button').addEventListener('click', () => _dismiss(id));
+
+        const list = document.getElementById('toast-list');
+        list.insertBefore(wrapper, list.firstChild);
+
+        // Enter animation
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                wrapper.style.transform = 'translateY(0) scale(1)';
+                wrapper.style.opacity = '1';
+            });
+        });
+
+        const entry = { id, el: wrapper, exiting: false, remaining: AUTO_DISMISS, startTime: Date.now(), timerId: null };
+        _toasts.unshift(entry);
+
+        if (!_hovered) {
+            entry.timerId = setTimeout(() => _dismiss(id), AUTO_DISMISS);
+        }
+
+        _updateVisibility();
+        return id;
+    }
+
+    function _escHtml(s) {
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    return { show };
+})();
+
+function showToast(msg, variant) {
+    Toast.show(msg, variant);
 }
 
 // --- Responsive sidebar toggle ---

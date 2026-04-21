@@ -94,9 +94,9 @@ async function submitCreateIssue(e) {
     try {
         await api('/api/issues', { method: 'POST', body: data });
         closeCreateModal();
-        showToast('Issue created');
+        showToast('Issue created', 'success');
         location.reload();
-    } catch (err) { showToast('Error: ' + err.message); }
+    } catch (err) { showToast('Error: ' + err.message, 'destructive'); }
 }
 
 // --- Issue Detail ---
@@ -114,7 +114,7 @@ async function openIssueDetail(issueId) {
         const panel = document.getElementById('detail-panel');
         const { content } = animateOpen(panel, '.panel-backdrop', '.panel-content');
         if (content) content.classList.add('anim-slide-in');
-    } catch (err) { showToast('Error loading issue'); }
+    } catch (err) { showToast('Error loading issue', 'destructive'); }
 }
 function closeDetailPanel() {
     const panel = document.getElementById('detail-panel');
@@ -126,9 +126,9 @@ async function updateCurrentIssue(fields) {
     if (!currentIssueId) return;
     try {
         await api('/api/issues/' + currentIssueId, { method: 'PATCH', body: fields });
-        showToast('Updated');
+        showToast('Updated', 'success');
         if (fields.status) location.reload();
-    } catch (err) { showToast('Error: ' + err.message); }
+    } catch (err) { showToast('Error: ' + err.message, 'destructive'); }
 }
 
 async function deleteCurrentIssue() {
@@ -137,9 +137,9 @@ async function deleteCurrentIssue() {
     try {
         await api('/api/issues/' + currentIssueId, { method: 'DELETE' });
         closeDetailPanel();
-        showToast('Issue deleted');
+        showToast('Issue deleted', 'success');
         location.reload();
-    } catch (err) { showToast('Error: ' + err.message); }
+    } catch (err) { showToast('Error: ' + err.message, 'destructive'); }
 }
 
 // --- Drag & Drop ---
@@ -273,9 +273,9 @@ document.querySelectorAll('.drop-zone').forEach(zone => {
 
         try {
             await api('/api/issues/' + issueId, { method: 'PATCH', body: { status: newStatus } });
-            showToast('Moved to ' + newStatus.replace('_', ' '));
+            showToast('Moved to ' + newStatus.replace('_', ' '), 'success');
         } catch (err) {
-            showToast('Error moving issue');
+            showToast('Error moving issue', 'destructive');
             location.reload();
         }
     });
@@ -355,7 +355,7 @@ document.querySelectorAll('[id^="col-btn-"]').forEach(btn => {
 function setGrouping(group) {
     document.querySelectorAll('.group-opt span').forEach(s => s.classList.add('hidden'));
     document.querySelector('.group-opt[data-group="' + group + '"] span').classList.remove('hidden');
-    showToast('Grouped by ' + group);
+    showToast('Grouped by ' + group, 'info');
     boardDropdowns.closeAll();
 }
 function toggleLabels(show) {
@@ -424,7 +424,7 @@ function sortColumn(status, sortBy) {
     });
     cards.forEach(c => zone.appendChild(c));
     boardDropdowns.closeAll();
-    showToast('Sorted by ' + sortBy);
+    showToast('Sorted by ' + sortBy, 'info');
 }
 function collapseColumn(status) {
     const col = document.getElementById('col-' + status);
@@ -494,7 +494,7 @@ async function toggleHiddenColumn(status) {
             container.style.maxHeight = container.scrollHeight + 'px';
             setTimeout(() => { container.style.maxHeight = 'none'; }, 300);
         });
-    } catch (err) { showToast('Error loading issues'); }
+    } catch (err) { showToast('Error loading issues', 'destructive'); }
 }
 
 // Keyboard shortcuts (dropdowns Escape handled by DropdownManager)

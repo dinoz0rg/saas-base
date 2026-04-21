@@ -192,6 +192,20 @@ async def settings(
     })
 
 
+@router.get("/tests", response_class=HTMLResponse)
+async def tests(
+    request: Request,
+    user: User = Depends(require_admin),
+):
+    return templates.TemplateResponse("page_dashboard.html", {
+        "request": request,
+        "user": user,
+        "active_page": "tests",
+        "page_title": "Tests",
+        "page_description": "Test UI components.",
+    })
+
+
 @router.get("/pricing", response_class=HTMLResponse)
 async def pricing(
     request: Request,

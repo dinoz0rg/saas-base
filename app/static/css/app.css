@@ -58,14 +58,6 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
     from { opacity: 1; transform: translateY(0); }
     to { opacity: 0; transform: translateY(-4px); }
 }
-@keyframes toastIn {
-    from { opacity: 0; transform: translateY(8px) scale(0.96); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes toastOut {
-    from { opacity: 1; transform: translateY(0) scale(1); }
-    to { opacity: 0; transform: translateY(8px) scale(0.96); }
-}
 @keyframes cardIn {
     from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
@@ -87,8 +79,6 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
 .anim-dropdown-in  { animation: dropdownIn 0.15s ease-out forwards; }
 .anim-dropdown-out { animation: dropdownOut 0.1s ease-in forwards; }
 
-.anim-toast-in  { animation: toastIn 0.25s cubic-bezier(0.16,1,0.3,1) forwards; }
-.anim-toast-out { animation: toastOut 0.2s ease-in forwards; }
 
 .anim-card { opacity: 0; animation: cardIn 0.3s ease-out forwards; }
 

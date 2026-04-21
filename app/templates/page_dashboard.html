@@ -335,6 +335,19 @@
                     </div>
                 </div>
 
+                <!-- Tests page -->
+                {% elif active_page == 'tests' %}
+                <div class="bg-white rounded-lg border border-neutral-200 p-6 anim-card">
+                    <h3 class="text-sm font-semibold text-neutral-900 mb-4">Toast Notifications</h3>
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="showToast('This is a default toast')" class="px-4 py-2 text-sm font-medium rounded-lg border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 transition-colors">Default</button>
+                        <button onclick="showToast('Action completed successfully!', 'success')" class="px-4 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">Success</button>
+                        <button onclick="showToast('Something went wrong.', 'destructive')" class="px-4 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Destructive</button>
+                        <button onclick="showToast('Please check your input.', 'warning')" class="px-4 py-2 text-sm font-medium rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors">Warning</button>
+                        <button onclick="showToast('New update available.', 'info')" class="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">Info</button>
+                    </div>
+                </div>
+
                 <!-- Reports / generic empty state -->
                 {% elif empty_message is defined %}
                 <div class="bg-white rounded-lg border border-neutral-200 p-12 text-center">
