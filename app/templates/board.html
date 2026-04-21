@@ -249,7 +249,7 @@
 <!-- Create Issue Modal -->
 <div id="create-modal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/30 modal-backdrop" onclick="closeCreateModal()"></div>
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl w-[520px] max-w-[90vw] max-h-[80vh] overflow-hidden modal-content">
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl w-[520px] max-w-[90vw] max-h-[80vh] overflow-visible modal-content">
         <form id="create-form" onsubmit="submitCreateIssue(event)">
             <div class="px-5 pt-5 pb-3">
                 <h3 class="text-sm font-semibold text-neutral-800 mb-4">New issue</h3>
@@ -261,23 +261,11 @@
                 <div class="grid grid-cols-2 gap-3 mb-3">
                     <div>
                         <label class="block text-2xs font-medium text-muted mb-1">Status</label>
-                        <select name="status" class="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="backlog">Backlog</option>
-                            <option value="todo">Todo</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="done">Done</option>
-                            <option value="cancelled">Cancelled</option>
-                        </select>
+                        <div id="create-status-select"></div>
                     </div>
                     <div>
                         <label class="block text-2xs font-medium text-muted mb-1">Priority</label>
-                        <select name="priority" class="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="none">No priority</option>
-                            <option value="urgent">Urgent</option>
-                            <option value="high">High</option>
-                            <option value="medium">Medium</option>
-                            <option value="low">Low</option>
-                        </select>
+                        <div id="create-priority-select"></div>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3 mb-3">
@@ -304,7 +292,7 @@
 <!-- Issue Detail Slide-over -->
 <div id="detail-panel" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/20 panel-backdrop" onclick="closeDetailPanel()"></div>
-    <div class="absolute right-0 top-0 bottom-0 w-[560px] max-w-[90vw] bg-white shadow-2xl border-l border-neutral-200 flex flex-col overflow-hidden panel-content">
+    <div class="absolute right-0 top-0 bottom-0 w-[560px] max-w-[90vw] bg-white shadow-2xl border-l border-neutral-200 flex flex-col overflow-visible panel-content">
         <div class="flex items-center justify-between px-5 py-3 border-b border-neutral-100">
             <span class="text-2xs text-muted font-medium" id="detail-identifier"></span>
             <div class="flex items-center gap-1">
@@ -329,25 +317,11 @@
             <div class="space-y-4">
                 <div class="flex items-center gap-3">
                     <span class="text-2xs font-medium text-muted w-20">Status</span>
-                    <select id="detail-status" class="flex-1 px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            onchange="updateCurrentIssue({status: this.value})">
-                        <option value="backlog">Backlog</option>
-                        <option value="todo">Todo</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="done">Done</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
+                    <div id="detail-status-select" class="flex-1"></div>
                 </div>
                 <div class="flex items-center gap-3">
                     <span class="text-2xs font-medium text-muted w-20">Priority</span>
-                    <select id="detail-priority" class="flex-1 px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            onchange="updateCurrentIssue({priority: this.value})">
-                        <option value="none">No priority</option>
-                        <option value="urgent">Urgent</option>
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
-                    </select>
+                    <div id="detail-priority-select" class="flex-1"></div>
                 </div>
                 <div class="flex items-center gap-3">
                     <span class="text-2xs font-medium text-muted w-20">Assignee</span>

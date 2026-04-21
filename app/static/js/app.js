@@ -180,6 +180,116 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
+/**
+ * Shared CustomSelect — beautiful dropdown replacement for <select>.
+ * Uses .dropdown-panel / .dropdown-item / .dropdown-item.active CSS.
+ *
+ * Usage:
+ *   const cs = new CustomSelect(container, {
+ *     options: [ { value: 'v', label: 'Label', icon: '<svg>...' }, ... ],
+ *     value: 'v',                // initial value
+ *     placeholder: 'Choose...',
+ *     onChange: (value, option) => { ... }
+ *   });
+ *   cs.getValue();        // current value
+ *   cs.setValue('v');      // programmatic set (no onChange fired)
+ */
+class CustomSelect {
+    constructor(container, opts = {}) {
+        this._container = typeof container === 'string' ? document.getElementById(container) : container;
+        this._opts = opts;
+        this._options = opts.options || [];
+        this._value = opts.value ?? '';
+        this._open = false;
+        this._build();
+    }
+    _build() {
+        const c = this._container;
+        c.classList.add('relative');
+        c.innerHTML = '';
+        // Hidden input
+        this._input = document.createElement('input');
+        this._input.type = 'hidden';
+        this._input.name = this._opts.name || '';
+        this._input.value = this._value;
+        c.appendChild(this._input);
+        // Trigger button
+        this._trigger = document.createElement('button');
+        this._trigger.type = 'button';
+        this._trigger.className = 'custom-select-trigger';
+        this._trigger.innerHTML = this._renderTrigger();
+        c.appendChild(this._trigger);
+        // Dropdown panel
+        this._panel = document.createElement('div');
+        this._panel.className = 'hidden dropdown-panel w-full';
+        this._panel.style.maxHeight = '200px';
+        this._panel.style.overflowY = 'auto';
+        this._renderOptions();
+        c.appendChild(this._panel);
+        // Events
+        this._trigger.addEventListener('click', (e) => { e.stopPropagation(); this._toggle(); });
+        document.addEventListener('click', (e) => {
+            if (this._open && !c.contains(e.target)) this._close();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this._open) this._close();
+        });
+    }
+    _renderTrigger() {
+        const opt = this._options.find(o => o.value === this._value);
+        const icon = opt?.icon || '';
+        const label = opt?.label || this._opts.placeholder || 'Select...';
+        const chevron = '<svg class="cs-chevron w-3 h-3 text-neutral-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>';
+        return `${icon ? `<span class="shrink-0 flex items-center">${icon}</span>` : ''}<span class="flex-1 text-left truncate">${label}</span>${chevron}`;
+    }
+    _renderOptions() {
+        this._panel.innerHTML = '<div class="py-1">' + this._options.map(o => {
+            const active = o.value === this._value;
+            const check = '<svg class="cs-check w-3.5 h-3.5 text-blue-500 ml-auto shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
+            return `<button type="button" class="dropdown-item gap-2${active ? ' active' : ''}" data-value="${o.value}">
+                ${o.icon ? `<span class="shrink-0 flex items-center">${o.icon}</span>` : ''}
+                <span class="flex-1 text-left">${o.label}</span>
+                ${active ? check : '<span class="w-3.5 h-3.5 ml-auto shrink-0"></span>'}
+            </button>`;
+        }).join('') + '</div>';
+        this._panel.querySelectorAll('.dropdown-item').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const v = btn.dataset.value;
+                if (v !== this._value) {
+                    this._value = v;
+                    this._input.value = v;
+                    this._trigger.innerHTML = this._renderTrigger();
+                    this._renderOptions();
+                    if (this._opts.onChange) this._opts.onChange(v, this._options.find(o => o.value === v));
+                }
+                this._close();
+            });
+        });
+    }
+    _toggle() {
+        this._open ? this._close() : this._openPanel();
+    }
+    _openPanel() {
+        this._open = true;
+        this._trigger.classList.add('open');
+        animateDropdownOpen(this._panel);
+    }
+    _close() {
+        if (!this._open) return;
+        this._open = false;
+        this._trigger.classList.remove('open');
+        animateDropdownClose(this._panel);
+    }
+    getValue() { return this._value; }
+    setValue(v) {
+        this._value = v;
+        this._input.value = v;
+        this._trigger.innerHTML = this._renderTrigger();
+        this._renderOptions();
+    }
+}
+
 // --- Fetch helpers ---
 async function api(url, opts = {}) {
     opts.headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };

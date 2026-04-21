@@ -8,12 +8,70 @@
 
 let currentIssueId = null;
 
+// --- Status & Priority icon helpers ---
+function getStatusIcon(value) {
+    const icons = {
+        backlog: '<svg class="w-3.5 h-3.5 text-neutral-400" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6" stroke-dasharray="2.5 2.5"/></svg>',
+        todo: '<svg class="w-3.5 h-3.5 text-neutral-500" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/></svg>',
+        in_progress: '<svg class="w-3.5 h-3.5 text-amber-500" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 2a6 6 0 010 12V2z" fill="currentColor" opacity="0.3"/></svg>',
+        done: '<svg class="w-3.5 h-3.5 text-blue-500" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7"/><path d="M5.5 8l2 2 3.5-3.5" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        cancelled: '<svg class="w-3.5 h-3.5 text-neutral-400" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7"/><path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>',
+    };
+    return icons[value] || '';
+}
+function getPriorityIcon(value) {
+    const icons = {
+        none: '<svg class="w-3.5 h-3.5 text-neutral-300" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="13" x2="3" y2="10"/><line x1="7" y1="13" x2="7" y2="7"/><line x1="11" y1="13" x2="11" y2="4" opacity="0.3"/><line x1="15" y1="13" x2="15" y2="1" opacity="0.15"/></svg>',
+        urgent: '<svg class="w-3.5 h-3.5 text-red-500" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="14" height="14" rx="3"/><path d="M8 4v5M8 11h.01" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>',
+        high: '<svg class="w-3.5 h-3.5 text-orange-500" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="13" x2="3" y2="10"/><line x1="7" y1="13" x2="7" y2="7"/><line x1="11" y1="13" x2="11" y2="4"/><line x1="15" y1="13" x2="15" y2="1" opacity="0.3"/></svg>',
+        medium: '<svg class="w-3.5 h-3.5 text-amber-500" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="13" x2="3" y2="10"/><line x1="7" y1="13" x2="7" y2="7"/><line x1="11" y1="13" x2="11" y2="4" opacity="0.3"/><line x1="15" y1="13" x2="15" y2="1" opacity="0.15"/></svg>',
+        low: '<svg class="w-3.5 h-3.5 text-blue-400" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="13" x2="3" y2="10"/><line x1="7" y1="13" x2="7" y2="7" opacity="0.3"/><line x1="11" y1="13" x2="11" y2="4" opacity="0.15"/><line x1="15" y1="13" x2="15" y2="1" opacity="0.1"/></svg>',
+    };
+    return icons[value] || '';
+}
+
+const STATUS_OPTIONS = [
+    { value: 'backlog', label: 'Backlog', icon: getStatusIcon('backlog') },
+    { value: 'todo', label: 'Todo', icon: getStatusIcon('todo') },
+    { value: 'in_progress', label: 'In Progress', icon: getStatusIcon('in_progress') },
+    { value: 'done', label: 'Done', icon: getStatusIcon('done') },
+    { value: 'cancelled', label: 'Cancelled', icon: getStatusIcon('cancelled') },
+];
+const PRIORITY_OPTIONS = [
+    { value: 'none', label: 'No priority', icon: getPriorityIcon('none') },
+    { value: 'urgent', label: 'Urgent', icon: getPriorityIcon('urgent') },
+    { value: 'high', label: 'High', icon: getPriorityIcon('high') },
+    { value: 'medium', label: 'Medium', icon: getPriorityIcon('medium') },
+    { value: 'low', label: 'Low', icon: getPriorityIcon('low') },
+];
+
+// --- Custom Select instances ---
+let createStatusCS, createPriorityCS, detailStatusCS, detailPriorityCS;
+
+document.addEventListener('DOMContentLoaded', function() {
+    createStatusCS = new CustomSelect('create-status-select', {
+        name: 'status', options: STATUS_OPTIONS, value: 'backlog', placeholder: 'Status'
+    });
+    createPriorityCS = new CustomSelect('create-priority-select', {
+        name: 'priority', options: PRIORITY_OPTIONS, value: 'none', placeholder: 'Priority'
+    });
+    detailStatusCS = new CustomSelect('detail-status-select', {
+        name: 'status', options: STATUS_OPTIONS, value: 'backlog', placeholder: 'Status',
+        onChange: (v) => updateCurrentIssue({ status: v })
+    });
+    detailPriorityCS = new CustomSelect('detail-priority-select', {
+        name: 'priority', options: PRIORITY_OPTIONS, value: 'none', placeholder: 'Priority',
+        onChange: (v) => updateCurrentIssue({ priority: v })
+    });
+});
+
 // --- Create Issue Modal ---
 function openCreateModal(status) {
     const modal = document.getElementById('create-modal');
     const form = document.getElementById('create-form');
     form.reset();
-    if (status) form.querySelector('[name=status]').value = status;
+    if (createStatusCS) createStatusCS.setValue(status || 'backlog');
+    if (createPriorityCS) createPriorityCS.setValue('none');
     const { content } = animateOpen(modal, '.modal-backdrop', '.modal-content');
     if (content) content.classList.add('anim-modal-in');
 }
@@ -49,8 +107,8 @@ async function openIssueDetail(issueId) {
         document.getElementById('detail-identifier').textContent = issue.identifier;
         document.getElementById('detail-title').value = issue.title;
         document.getElementById('detail-description').value = issue.description || '';
-        document.getElementById('detail-status').value = issue.status;
-        document.getElementById('detail-priority').value = issue.priority;
+        if (detailStatusCS) detailStatusCS.setValue(issue.status);
+        if (detailPriorityCS) detailPriorityCS.setValue(issue.priority);
         document.getElementById('detail-assignee').value = issue.assignee || '';
         document.getElementById('detail-label').value = issue.label || '';
         const panel = document.getElementById('detail-panel');
