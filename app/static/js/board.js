@@ -67,17 +67,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- Create Issue Modal ---
 function openCreateModal(status) {
-    const modal = document.getElementById('create-modal');
     const form = document.getElementById('create-form');
     form.reset();
     if (createStatusCS) createStatusCS.setValue(status || 'backlog');
     if (createPriorityCS) createPriorityCS.setValue('none');
-    const { content } = animateOpen(modal, '.modal-backdrop', '.modal-content');
-    if (content) content.classList.add('anim-modal-in');
+    Modal.open('create-modal');
 }
 function closeCreateModal() {
-    const modal = document.getElementById('create-modal');
-    animateClose(modal, '.modal-backdrop', '.modal-content', 'anim-modal-out');
+    Modal.close('create-modal');
 }
 
 async function submitCreateIssue(e) {

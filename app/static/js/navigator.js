@@ -39,6 +39,7 @@ const Navigator = (() => {
         });
         inputEl.addEventListener('input', autoResize);
         backdrop.addEventListener('click', close);
+        dialog.addEventListener('click', (e) => { if (e.target === dialog) close(); });
 
         // New chat button
         const newChatBtn = document.getElementById('nav-new-chat');

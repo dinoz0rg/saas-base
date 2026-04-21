@@ -26,6 +26,26 @@ function animateClose(wrapper, backdropCls, contentCls, outClass) {
     }, duration);
 }
 
+// --- Shared Modal ---
+// Usage: Modal.open('my-modal')  /  Modal.close('my-modal')
+// HTML must follow: <div id="my-modal" class="fixed inset-0 z-50 hidden">
+//   <div class="... modal-backdrop" onclick="Modal.close('my-modal')"></div>
+//   <div class="... modal-content"> ... </div>
+// </div>
+const Modal = {
+    open(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const { content } = animateOpen(el, '.modal-backdrop', '.modal-content');
+        if (content) content.classList.add('anim-modal-in');
+    },
+    close(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        animateClose(el, '.modal-backdrop', '.modal-content', 'anim-modal-out');
+    }
+};
+
 // --- Dropdown animation helpers ---
 function animateDropdownOpen(menu) {
     menu.classList.remove('hidden', 'anim-dropdown-out');
