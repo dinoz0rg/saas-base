@@ -53,7 +53,7 @@
                 <span class="text-xs truncate">Ask Navigator...</span>
                 <kbd class="text-2xs text-neutral-400 border border-neutral-200 rounded px-1 py-px whitespace-nowrap leading-tight ml-auto shrink-0 font-sans">⌘K</kbd>
             </button>
-            <button onclick="Navigator.open()" class="flex items-center gap-1 px-2 py-1.5 border border-neutral-200 rounded-md text-muted hover:bg-neutral-50 hover:border-neutral-300 cursor-pointer shrink-0 transition-colors" title="Search">
+            <button onclick="Search.open()" class="flex items-center gap-1 px-2 py-1.5 border border-neutral-200 rounded-md text-muted hover:bg-neutral-50 hover:border-neutral-300 cursor-pointer shrink-0 transition-colors" title="Quick search">
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 <span class="text-xs font-mono leading-none">/</span>
             </button>
@@ -265,6 +265,40 @@
                 <p class="text-xs text-neutral-400 mt-2 text-center">AI-powered insights · Press Esc to close</p>
             </div>
             </div><!-- /Main chat area -->
+        </div>
+    </div>
+</div>
+
+<!-- Quick Search Modal (fast navigation, no AI) -->
+<div id="search-modal" class="hidden fixed inset-0 z-50">
+    <div class="search-backdrop absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+    <div class="search-dialog absolute inset-0 flex items-start justify-center p-4 pt-[12vh]">
+        <div class="w-full max-w-xl bg-white rounded-xl shadow-2xl border border-neutral-200 overflow-hidden">
+            <!-- Input -->
+            <div class="flex items-center gap-2 px-4 py-3 border-b border-neutral-100">
+                <svg class="w-4 h-4 text-neutral-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input id="search-input" type="text" placeholder="Search pages and settings..." class="flex-1 bg-transparent text-sm placeholder:text-neutral-400 focus:outline-none" autocomplete="off"/>
+                <kbd class="text-2xs text-neutral-400 border border-neutral-200 rounded px-1.5 py-0.5 font-sans">Esc</kbd>
+                <button id="search-close-btn" class="w-6 h-6 flex items-center justify-center rounded text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors" title="Close">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <!-- Results -->
+            <div class="max-h-[60vh] overflow-y-auto scrollbar-thin p-2">
+                <div id="search-results" class="space-y-0.5"></div>
+                <div id="search-empty" class="hidden flex flex-col items-center justify-center py-12 text-center">
+                    <svg class="w-8 h-8 text-neutral-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <p class="text-xs text-neutral-400">No matches found</p>
+                </div>
+            </div>
+            <!-- Footer hints -->
+            <div class="flex items-center justify-between px-4 py-2 border-t border-neutral-100 bg-neutral-50/60 text-2xs text-neutral-400">
+                <div class="flex items-center gap-3">
+                    <span><kbd class="border border-neutral-200 bg-white rounded px-1 py-px font-sans">↑↓</kbd> navigate</span>
+                    <span><kbd class="border border-neutral-200 bg-white rounded px-1 py-px font-sans">↵</kbd> open</span>
+                </div>
+                <span>Quick search</span>
+            </div>
         </div>
     </div>
 </div>

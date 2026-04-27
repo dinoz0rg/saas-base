@@ -1,11 +1,13 @@
 import json
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_admin, require_user
+from app.config import settings
 from app.database import get_db
 from app.models.issue import Issue, IssueStatus, IssuePriority
 from app.models.chat import ChatSession
@@ -169,7 +171,7 @@ async def create_chat(
     user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ):
-    title = data.title or _derive_title(data.messages)
+    title = data.title or await _generate_title(data.messages)
     session = ChatSession(
         user_id=user.id,
         title=title,
@@ -212,8 +214,6 @@ async def update_chat(
     session.messages = json.dumps(data.messages)
     if data.title:
         session.title = data.title
-    else:
-        session.title = _derive_title(data.messages)
     db.add(session)
     await db.flush()
     await db.refresh(session)
@@ -241,3 +241,115 @@ def _derive_title(messages: list[dict]) -> str:
             text = msg["content"].strip()
             return text[:50] + ("..." if len(text) > 50 else "")
     return "New Chat"
+
+
+async def _generate_title(messages: list[dict]) -> str:
+    """ChatGPT-style short title (≤5 words) from the first exchange.
+
+    Falls back to truncated first user message on any failure or when the
+    OpenAI key is not configured.
+    """
+    fallback = _derive_title(messages)
+    api_key = settings.OPENAI_API_KEY
+    if not api_key:
+        return fallback
+
+    convo = [
+        {"role": m.get("role", "user"), "content": str(m.get("content", ""))}
+        for m in messages
+        if m.get("content") and m.get("role") in ("user", "assistant")
+    ][:6]
+    if not any(m["role"] == "user" for m in convo):
+        return fallback
+
+    prompt = (
+        "Summarize the following conversation in a short, descriptive title "
+        "of at most 5 words. Use Title Case. No quotes, no trailing period, "
+        "no emoji.\n\n"
+        + "\n".join(f"{m['role']}: {m['content']}" for m in convo)
+    )
+    payload = {
+        "model": settings.OPENAI_MODEL,
+        "messages": [
+            {"role": "system", "content": "You generate concise chat titles."},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0.3,
+        "max_tokens": 20,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+        if resp.status_code >= 400:
+            return fallback
+        body = resp.json()
+        title = body["choices"][0]["message"]["content"].strip()
+        title = title.strip('"\'').rstrip(".").strip()
+        if not title:
+            return fallback
+        return title[:60]
+    except (httpx.HTTPError, KeyError, ValueError):
+        return fallback
+
+
+# ── AI Assistant ─────────────────────────────────────────────────────
+
+
+class AskPayload(BaseModel):
+    messages: list[dict]
+
+
+SYSTEM_PROMPT = (
+    "You are Ask Navigator, a concise AI assistant embedded in a SaaS dashboard. "
+    "Help the user understand their account, navigate the app, and answer "
+    "questions clearly. Use short paragraphs and Markdown when helpful."
+)
+
+
+@router.post("/ai/ask")
+async def ai_ask(
+    data: AskPayload,
+    user: User = Depends(require_user),
+):
+    api_key = settings.OPENAI_API_KEY
+    if not api_key:
+        raise HTTPException(status_code=503, detail="OPENAI_API_KEY is not configured")
+
+    # Sanitize incoming messages: keep only role + content, drop client-side fields.
+    history = [
+        {"role": m.get("role", "user"), "content": str(m.get("content", ""))}
+        for m in data.messages
+        if m.get("content")
+    ]
+    payload = {
+        "model": settings.OPENAI_MODEL,
+        "messages": [{"role": "system", "content": SYSTEM_PROMPT}, *history],
+        "temperature": 0.5,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=f"OpenAI request failed: {exc}")
+
+    if resp.status_code >= 400:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+
+    body = resp.json()
+    content = body["choices"][0]["message"]["content"]
+    return {"content": content, "model": body.get("model", settings.OPENAI_MODEL)}

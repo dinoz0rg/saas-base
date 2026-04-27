@@ -325,12 +325,32 @@ const Navigator = (() => {
         inputEl.value = '';
         autoResize({ target: inputEl });
 
-        const assistantMsg = { role: 'assistant', content: '', tools: [], loading: true };
+        const assistantMsg = { role: 'assistant', content: '', loading: true };
         messages.push(assistantMsg);
         isLoading = true;
         renderView();
 
-        await simulateResponse(text, assistantMsg);
+        try {
+            const history = messages
+                .filter(m => m.content || m.role === 'user')
+                .map(m => ({ role: m.role, content: m.content }))
+                .filter(m => m.content);
+            const resp = await fetch('/api/ai/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: history }),
+            });
+            if (!resp.ok) {
+                const errText = await resp.text().catch(() => '');
+                assistantMsg.content = `**Error:** ${resp.status} ${resp.statusText}${errText ? `\n\n\`${errText.slice(0, 300)}\`` : ''}`;
+            } else {
+                const data = await resp.json();
+                assistantMsg.content = data.content || '';
+            }
+        } catch (err) {
+            assistantMsg.content = `**Error:** ${err.message || 'Network error'}`;
+        }
+
         assistantMsg.loading = false;
         isLoading = false;
         renderView();
@@ -338,50 +358,6 @@ const Navigator = (() => {
         // Auto-save after each exchange
         await saveCurrentChat();
         loadHistory();
-    }
-
-    async function simulateResponse(query, msg) {
-        const q = query.toLowerCase();
-
-        await delay(400);
-        if (q.includes('revenue') || q.includes('money') || q.includes('financ') || q.includes('cost') || q.includes('profit')) {
-            msg.tools.push('Financial Analytics');
-            renderView();
-            await delay(600);
-            msg.tools.push('Revenue Tracker');
-            renderView();
-            await delay(500);
-            msg.content = `Here's a summary of your financial data:\n\n**Total Revenue:** $124,500 (↑ 12% vs last month)\n**Active Subscriptions:** 342\n**MRR:** $28,400\n**Churn Rate:** 2.1%\n\nYour revenue has been trending upward over the past 3 months. The Pro plan continues to be your strongest performer with 68% of total revenue.`;
-        } else if (q.includes('page') || q.includes('content') || q.includes('document')) {
-            msg.tools.push('Content Database');
-            renderView();
-            await delay(700);
-            msg.content = `You currently have **12 pages** in your account:\n\n- **8 published** pages with a total of 2,340 views\n- **3 draft** pages pending review\n- **1 archived** page\n\nYour most viewed page is "Getting Started Guide" with 892 views this month.`;
-        } else if (q.includes('user') || q.includes('member') || q.includes('team')) {
-            msg.tools.push('User Database');
-            renderView();
-            await delay(500);
-            msg.tools.push('Activity Tracker');
-            renderView();
-            await delay(400);
-            msg.content = `Here's your team overview:\n\n**Total Users:** 24\n**Active this week:** 18 (75%)\n**New sign-ups (30d):** 6\n\n| Role | Count |\n|------|-------|\n| Admin | 2 |\n| Editor | 8 |\n| Viewer | 14 |\n\nMost active user: **Manu** with 142 actions this week.`;
-        } else if (q.includes('activity') || q.includes('recent') || q.includes('log')) {
-            msg.tools.push('Activity Log');
-            renderView();
-            await delay(600);
-            msg.content = `Recent activity in your account:\n\n1. **Page updated** — "API Documentation" was edited 2 hours ago\n2. **New user** — sarah@example.com joined yesterday\n3. **Report generated** — Monthly analytics report was created\n4. **Settings changed** — Notification preferences updated\n5. **Page published** — "Release Notes v2.4" went live\n\nThere have been **47 actions** in the last 24 hours across your account.`;
-        } else if (q.includes('help') || q.includes('what can') || q.includes('how')) {
-            await delay(300);
-            msg.content = `I'm your **AI account assistant**! Here's what I can help with:\n\n- 📊 **Analytics** — Revenue, user metrics, growth trends\n- 📄 **Content** — Page stats, publishing status, view counts\n- 👥 **Team** — User activity, roles, engagement\n- 📋 **Activity** — Recent actions, audit trail\n- ⚙️ **Settings** — Configuration guidance\n\nJust ask me anything about your account and I'll pull the relevant data for you!`;
-        } else if (q.includes('setting') || q.includes('config') || q.includes('setup')) {
-            msg.tools.push('Settings Store');
-            renderView();
-            await delay(500);
-            msg.content = `Your current account settings:\n\n- **Plan:** Pro ($29/mo)\n- **Storage:** 4.2 GB / 10 GB used\n- **API Rate Limit:** 1,000 req/min\n- **2FA:** Enabled\n- **Email Notifications:** On\n- **Timezone:** UTC+8 (Asia/Kuala_Lumpur)\n\nWould you like me to help you change any of these settings?`;
-        } else {
-            await delay(500);
-            msg.content = `I understand you're asking about "${escapeHtml(query)}". Let me help with that!\n\nI can assist you with:\n- **Revenue & financial data** — Ask about profits, costs, subscriptions\n- **Pages & content** — Check page stats, views, publishing\n- **Team & users** — User activity, roles, engagement metrics\n- **Activity logs** — Recent account actions\n\nTry asking something more specific and I'll pull the relevant data for you.`;
-        }
     }
 
     // ── Utilities ───────────────────────────────────────────────
