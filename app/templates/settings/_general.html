@@ -1,0 +1,72 @@
+<section data-panel="general" class="settings-panel rounded-xl border border-neutral-200 bg-white">
+    <div class="px-6 py-4 border-b border-neutral-100">
+        <h3 class="text-sm font-semibold text-neutral-900">General</h3>
+        <p class="mt-0.5 text-xs text-muted">Your name, contact email, workspace, and locale.</p>
+    </div>
+    <form id="form-general" class="px-6 py-6 space-y-5">
+        <!-- Avatar -->
+        <div class="flex items-center gap-4 pb-2">
+            <div class="relative shrink-0">
+                {% if user.avatar_url %}
+                <img id="avatar-preview" src="{{ user.avatar_url }}" alt="" class="w-16 h-16 rounded-full object-cover border border-neutral-200">
+                {% else %}
+                <div id="avatar-preview-fallback" class="w-16 h-16 rounded-full bg-neutral-900 flex items-center justify-center border border-neutral-200">
+                    <span class="text-white text-xl font-semibold">{{ user.display_name[0]|upper }}</span>
+                </div>
+                <img id="avatar-preview" src="" alt="" class="hidden w-16 h-16 rounded-full object-cover border border-neutral-200">
+                {% endif %}
+            </div>
+            <div class="space-y-1.5">
+                <div class="text-sm font-medium text-neutral-900">Profile photo</div>
+                <p class="text-xs text-muted">PNG, JPG, or GIF. Max 2MB.</p>
+                <div class="flex gap-2 pt-1">
+                    <label class="cursor-pointer rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 transition">
+                        <input id="avatar-input" type="file" accept="image/*" class="hidden">
+                        Upload new
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+                <label class="mb-1.5 block text-xs font-medium text-neutral-700">Display name</label>
+                <input name="display_name" type="text" required maxlength="100" value="{{ user.display_name }}" class="settings-input">
+            </div>
+            <div>
+                <label class="mb-1.5 block text-xs font-medium text-neutral-700">Email</label>
+                <input name="email" type="email" required value="{{ user.email }}" class="settings-input">
+            </div>
+        </div>
+        <div>
+            <label class="mb-1.5 block text-xs font-medium text-neutral-700">Workspace name</label>
+            <input name="workspace_name" type="text" maxlength="100" placeholder="My workspace"
+                   value="{{ user.workspace_name or '' }}" class="settings-input">
+            <p class="mt-1 text-xs text-muted">Shown across the dashboard and emails.</p>
+        </div>
+        <div>
+            <label class="mb-1.5 block text-xs font-medium text-neutral-700">Bio</label>
+            <textarea name="bio" rows="3" maxlength="1000" placeholder="A short description about you" class="settings-input resize-y">{{ user.bio or '' }}</textarea>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+                <label class="mb-1.5 block text-xs font-medium text-neutral-700">Language</label>
+                <select name="language" class="settings-input">
+                    {% for code, label in languages %}
+                    <option value="{{ code }}" {% if user.language == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="mb-1.5 block text-xs font-medium text-neutral-700">Timezone</label>
+                <select name="timezone" class="settings-input">
+                    {% for tz in timezones %}
+                    <option value="{{ tz }}" {% if user.timezone == tz %}selected{% endif %}>{{ tz }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+            <button type="submit" class="settings-btn-primary">Save changes</button>
+        </div>
+    </form>
+</section>

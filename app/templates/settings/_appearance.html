@@ -1,0 +1,69 @@
+<section data-panel="appearance" class="settings-panel rounded-xl border border-neutral-200 bg-white">
+    <div class="px-6 py-4 border-b border-neutral-100">
+        <h3 class="text-sm font-semibold text-neutral-900">Appearance</h3>
+        <p class="mt-0.5 text-xs text-muted">Customize how the dashboard looks for you.</p>
+    </div>
+    <form id="form-appearance" class="px-6 py-6 space-y-6">
+        <!-- Theme -->
+        <div>
+            <div class="text-xs font-medium text-neutral-700 mb-2">Theme</div>
+            <div class="grid grid-cols-3 gap-3" role="radiogroup">
+                {% set theme_opts = [
+                    ('system', 'System', 'M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25'),
+                    ('light',  'Light',  'M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z'),
+                    ('dark',   'Dark',   'M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z'),
+                ] %}
+                {% for val, label, path in theme_opts %}
+                <label class="theme-option {% if user.theme == val %}selected{% endif %}">
+                    <input type="radio" name="theme" value="{{ val }}" class="hidden" {% if user.theme == val %}checked{% endif %}>
+                    <span class="flex flex-col items-center gap-2 px-3 py-4 rounded-lg border-2 cursor-pointer transition-all">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="{{ path }}"/></svg>
+                        <span class="text-xs font-medium">{{ label }}</span>
+                    </span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Accent -->
+        <div>
+            <div class="text-xs font-medium text-neutral-700 mb-2">Accent color</div>
+            <div class="flex flex-wrap gap-2.5">
+                {% set accent_colors = {
+                    'blue':    '#3b82f6',
+                    'violet':  '#8b5cf6',
+                    'emerald': '#10b981',
+                    'orange':  '#f97316',
+                    'rose':    '#f43f5e',
+                    'neutral': '#525252',
+                } %}
+                {% for val in accents %}
+                <label class="accent-option {% if user.accent == val %}selected{% endif %}" title="{{ val|capitalize }}">
+                    <input type="radio" name="accent" value="{{ val }}" class="hidden" {% if user.accent == val %}checked{% endif %}>
+                    <span class="block w-8 h-8 rounded-full ring-2 ring-offset-2 ring-transparent transition-all cursor-pointer" style="background:{{ accent_colors[val] }}"></span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Density -->
+        <div>
+            <div class="text-xs font-medium text-neutral-700 mb-2">Density</div>
+            <div class="grid grid-cols-2 gap-3">
+                {% for val, label, sub in [('comfortable', 'Comfortable', 'Default spacing'), ('compact', 'Compact', 'Tighter, fits more on screen')] %}
+                <label class="density-option {% if user.density == val %}selected{% endif %}">
+                    <input type="radio" name="density" value="{{ val }}" class="hidden" {% if user.density == val %}checked{% endif %}>
+                    <span class="flex flex-col items-start gap-1 px-4 py-3 rounded-lg border-2 cursor-pointer transition-all">
+                        <span class="text-sm font-medium">{{ label }}</span>
+                        <span class="text-xs text-muted">{{ sub }}</span>
+                    </span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+            <button type="submit" class="settings-btn-primary">Save preferences</button>
+        </div>
+    </form>
+</section>

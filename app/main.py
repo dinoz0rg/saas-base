@@ -3,15 +3,50 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 
 from app.database import engine, Base
-from app.routers import auth, pages, dashboard, board, api
+from app.routers import auth, pages, dashboard, board, api, settings as settings_router
+
+
+# ── Lightweight SQLite migrations ────────────────────────────────────────────
+# `Base.metadata.create_all` only creates *missing* tables — it never adds new
+# columns to existing tables. For dev convenience we add any missing columns to
+# pre-existing SQLite databases on startup.
+NEW_USER_COLUMNS = [
+    ("theme", "VARCHAR(16) DEFAULT 'system' NOT NULL"),
+    ("accent", "VARCHAR(16) DEFAULT 'blue' NOT NULL"),
+    ("density", "VARCHAR(16) DEFAULT 'comfortable' NOT NULL"),
+    ("language", "VARCHAR(10) DEFAULT 'en' NOT NULL"),
+    ("timezone", "VARCHAR(64) DEFAULT 'UTC' NOT NULL"),
+    ("notify_product", "BOOLEAN DEFAULT 1 NOT NULL"),
+    ("notify_security", "BOOLEAN DEFAULT 1 NOT NULL"),
+    ("notify_marketing", "BOOLEAN DEFAULT 0 NOT NULL"),
+    ("notify_weekly_digest", "BOOLEAN DEFAULT 1 NOT NULL"),
+    ("workspace_name", "VARCHAR(100)"),
+    ("bio", "TEXT"),
+]
+
+
+async def _migrate_sqlite(conn) -> None:
+    res = await conn.execute(text("PRAGMA table_info(users)"))
+    existing = {row[1] for row in res.fetchall()}
+    if not existing:
+        return  # table not created yet — create_all will do it
+    for col, ddl in NEW_USER_COLUMNS:
+        if col not in existing:
+            await conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {ddl}"))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        try:
+            await _migrate_sqlite(conn)
+        except Exception:
+            # Non-SQLite or already migrated — ignore.
+            pass
     yield
 
 
@@ -22,5 +57,6 @@ app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), na
 app.include_router(auth.router)
 app.include_router(pages.router)
 app.include_router(dashboard.router)
+app.include_router(settings_router.router)
 app.include_router(board.router)
 app.include_router(api.router)

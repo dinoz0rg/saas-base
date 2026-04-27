@@ -74,3 +74,18 @@ class Page(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now_utc, onupdate=_now_utc)
 
     owner: Mapped["app.models.user.User"] = relationship(back_populates="pages")
+
+
+class ApiKey(Base):
+    __tablename__ = "api_keys"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(100))
+    prefix: Mapped[str] = mapped_column(String(12))            # short displayable prefix e.g. "sk_live_a1b2"
+    hashed_key: Mapped[str] = mapped_column(String(255))       # bcrypt hash of full key
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now_utc)
+
+    owner: Mapped["app.models.user.User"] = relationship(back_populates="api_keys")

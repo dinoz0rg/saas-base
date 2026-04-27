@@ -7,6 +7,24 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/static/js/tailwind.config.js"></script>
     <link rel="stylesheet" href="/static/css/app.css">
+    <script>
+        // Bootstrap user theme/accent before paint to avoid flash.
+        (function () {
+            try {
+                var theme = {{ user.theme|tojson if user is defined and user else '"system"' }};
+                var accent = {{ user.accent|tojson if user is defined and user else '"blue"' }};
+                var stored = localStorage.getItem('app.theme');
+                if (stored) theme = stored;
+                var sa = localStorage.getItem('app.accent');
+                if (sa) accent = sa;
+                var resolved = theme === 'system'
+                    ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                    : theme;
+                document.documentElement.dataset.theme = resolved;
+                document.documentElement.dataset.accent = accent;
+            } catch (e) { /* ignore */ }
+        })();
+    </script>
 </head>
 <body class="h-full bg-sidebar text-neutral-900 text-sm antialiased">
     <div class="flex h-full">

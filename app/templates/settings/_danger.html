@@ -1,0 +1,44 @@
+<section data-panel="danger" class="settings-panel rounded-xl border border-red-200 bg-white">
+    <div class="px-6 py-4 border-b border-red-100 bg-red-50/40 rounded-t-xl">
+        <h3 class="text-sm font-semibold text-red-700">Danger zone</h3>
+        <p class="mt-0.5 text-xs text-red-600/80">Irreversible actions that permanently affect your account.</p>
+    </div>
+    <div class="px-6 py-6">
+        <div class="flex items-center justify-between gap-4">
+            <div>
+                <div class="text-sm font-medium text-neutral-900">Delete account</div>
+                <div class="text-xs text-muted mt-0.5">Permanently delete your account, pages, sessions, and API keys. This cannot be undone.</div>
+            </div>
+            <button id="danger-delete-btn" class="shrink-0 rounded-lg bg-red-600 hover:bg-red-700 text-white px-3 py-2 text-xs font-medium transition">
+                Delete my account
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- Confirm delete modal -->
+<div id="danger-modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40 modal-backdrop" onclick="Modal.close('danger-modal')"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="modal-content w-full max-w-md rounded-xl bg-white shadow-xl border border-neutral-200">
+            <div class="px-5 py-4 border-b border-neutral-100">
+                <h3 class="text-sm font-semibold text-red-700">Delete account</h3>
+                <p class="mt-1 text-xs text-muted">This will permanently erase your account and all related data. There's no going back.</p>
+            </div>
+            <form id="danger-form" class="px-5 py-4 space-y-4">
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-neutral-700">Confirm with your password</label>
+                    <input name="password" type="password" required autocomplete="current-password" class="settings-input">
+                </div>
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-neutral-700">Type <span class="font-mono font-semibold text-red-600">DELETE</span> to confirm</label>
+                    <input name="confirm" type="text" required placeholder="DELETE" class="settings-input">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="Modal.close('danger-modal')" class="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50">Cancel</button>
+                    <button type="submit" class="rounded-lg bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 text-xs font-medium transition">Permanently delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

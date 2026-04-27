@@ -38,16 +38,11 @@ async def pricing(request: Request, user: User | None = Depends(get_current_user
     return templates.TemplateResponse("pricing.html", {"request": request, "user": user})
 
 
-@router.get("/profile", response_class=HTMLResponse)
-async def profile_page(
-    request: Request,
-    user: User = Depends(require_user),
-):
-    return templates.TemplateResponse("profile.html", {
-        "request": request,
-        "user": user,
-        "active_page": "profile",
-    })
+@router.get("/profile")
+async def profile_page(request: Request):
+    # /profile and /settings were merged; keep this as a permanent redirect so
+    # any existing links/bookmarks land on the unified settings surface.
+    return RedirectResponse(url="/settings", status_code=303)
 
 
 def _wants_json(request: Request) -> bool:
