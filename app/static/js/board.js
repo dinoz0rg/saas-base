@@ -487,7 +487,7 @@ async function toggleHiddenColumn(status) {
         const issues = await api('/api/issues?status=' + status);
         container.innerHTML = issues.slice(0, 15).map((i, idx) =>
             '<div class="flex items-center gap-2 px-2 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50 rounded cursor-pointer" onclick="openIssueDetail(\'' + i.id + '\')" style="opacity:0;transform:translateY(-4px);animation:cardIn 200ms ease-out ' + (idx * 30) + 'ms forwards">' +
-                '<span class="text-2xs text-muted font-mono">' + i.identifier + '</span>' +
+                '<span class="text-2xs text-muted font-mono whitespace-nowrap">' + i.identifier + '</span>' +
                 '<span class="truncate">' + i.title + '</span>' +
             '</div>'
         ).join('') || '<div class="px-2 py-1.5 text-2xs text-neutral-400">No issues</div>';

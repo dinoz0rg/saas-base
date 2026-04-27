@@ -356,7 +356,7 @@ const Navigator = (() => {
             msg.tools.push('Content Database');
             renderView();
             await delay(700);
-            msg.content = `You currently have **12 pages** in your workspace:\n\n- **8 published** pages with a total of 2,340 views\n- **3 draft** pages pending review\n- **1 archived** page\n\nYour most viewed page is "Getting Started Guide" with 892 views this month.`;
+            msg.content = `You currently have **12 pages** in your account:\n\n- **8 published** pages with a total of 2,340 views\n- **3 draft** pages pending review\n- **1 archived** page\n\nYour most viewed page is "Getting Started Guide" with 892 views this month.`;
         } else if (q.includes('user') || q.includes('member') || q.includes('team')) {
             msg.tools.push('User Database');
             renderView();
@@ -369,18 +369,18 @@ const Navigator = (() => {
             msg.tools.push('Activity Log');
             renderView();
             await delay(600);
-            msg.content = `Recent activity in your workspace:\n\n1. **Page updated** — "API Documentation" was edited 2 hours ago\n2. **New user** — sarah@example.com joined yesterday\n3. **Report generated** — Monthly analytics report was created\n4. **Settings changed** — Notification preferences updated\n5. **Page published** — "Release Notes v2.4" went live\n\nThere have been **47 actions** in the last 24 hours across your workspace.`;
+            msg.content = `Recent activity in your account:\n\n1. **Page updated** — "API Documentation" was edited 2 hours ago\n2. **New user** — sarah@example.com joined yesterday\n3. **Report generated** — Monthly analytics report was created\n4. **Settings changed** — Notification preferences updated\n5. **Page published** — "Release Notes v2.4" went live\n\nThere have been **47 actions** in the last 24 hours across your account.`;
         } else if (q.includes('help') || q.includes('what can') || q.includes('how')) {
             await delay(300);
-            msg.content = `I'm your **AI workspace assistant**! Here's what I can help with:\n\n- 📊 **Analytics** — Revenue, user metrics, growth trends\n- 📄 **Content** — Page stats, publishing status, view counts\n- 👥 **Team** — User activity, roles, engagement\n- 📋 **Activity** — Recent actions, audit trail\n- ⚙️ **Settings** — Configuration guidance\n\nJust ask me anything about your workspace and I'll pull the relevant data for you!`;
+            msg.content = `I'm your **AI account assistant**! Here's what I can help with:\n\n- 📊 **Analytics** — Revenue, user metrics, growth trends\n- 📄 **Content** — Page stats, publishing status, view counts\n- 👥 **Team** — User activity, roles, engagement\n- 📋 **Activity** — Recent actions, audit trail\n- ⚙️ **Settings** — Configuration guidance\n\nJust ask me anything about your account and I'll pull the relevant data for you!`;
         } else if (q.includes('setting') || q.includes('config') || q.includes('setup')) {
             msg.tools.push('Settings Store');
             renderView();
             await delay(500);
-            msg.content = `Your current workspace settings:\n\n- **Plan:** Pro ($29/mo)\n- **Storage:** 4.2 GB / 10 GB used\n- **API Rate Limit:** 1,000 req/min\n- **2FA:** Enabled\n- **Email Notifications:** On\n- **Timezone:** UTC+8 (Asia/Kuala_Lumpur)\n\nWould you like me to help you change any of these settings?`;
+            msg.content = `Your current account settings:\n\n- **Plan:** Pro ($29/mo)\n- **Storage:** 4.2 GB / 10 GB used\n- **API Rate Limit:** 1,000 req/min\n- **2FA:** Enabled\n- **Email Notifications:** On\n- **Timezone:** UTC+8 (Asia/Kuala_Lumpur)\n\nWould you like me to help you change any of these settings?`;
         } else {
             await delay(500);
-            msg.content = `I understand you're asking about "${escapeHtml(query)}". Let me help with that!\n\nI can assist you with:\n- **Revenue & financial data** — Ask about profits, costs, subscriptions\n- **Pages & content** — Check page stats, views, publishing\n- **Team & users** — User activity, roles, engagement metrics\n- **Activity logs** — Recent workspace actions\n\nTry asking something more specific and I'll pull the relevant data for you.`;
+            msg.content = `I understand you're asking about "${escapeHtml(query)}". Let me help with that!\n\nI can assist you with:\n- **Revenue & financial data** — Ask about profits, costs, subscriptions\n- **Pages & content** — Check page stats, views, publishing\n- **Team & users** — User activity, roles, engagement metrics\n- **Activity logs** — Recent account actions\n\nTry asking something more specific and I'll pull the relevant data for you.`;
         }
     }
 

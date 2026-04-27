@@ -294,10 +294,10 @@ function toggleSidebar() {
 function openSearchModal() { if (typeof Navigator !== 'undefined') Navigator.open(); }
 function closeSearchModal() { if (typeof Navigator !== 'undefined') Navigator.close(); }
 
-// --- Workspace dropdown (auto-init) ---
+// --- Account dropdown (auto-init) ---
 document.addEventListener('DOMContentLoaded', function() {
-    const trigger = document.getElementById('workspace-trigger');
-    const menu = document.getElementById('workspace-menu');
+    const trigger = document.getElementById('account-trigger');
+    const menu = document.getElementById('account-menu');
     if (trigger && menu) {
         const dm = new DropdownManager();
         dm.register(trigger, menu);

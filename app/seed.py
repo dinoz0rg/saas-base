@@ -7,7 +7,7 @@ from sqlalchemy import select
 from app.database import async_session, engine, Base
 from app.auth import hash_password
 from app.models.user import User
-from app.models.workspace import Activity, ActivityType, Metric, MetricPeriod, Page
+from app.models.account import Activity, ActivityType, Metric, MetricPeriod, Page
 from app.models.issue import Issue, IssueStatus, IssuePriority
 
 

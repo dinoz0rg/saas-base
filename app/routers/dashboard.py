@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_user, require_admin
 from app.database import get_db
-from app.models.workspace import Activity, Metric, Page
+from app.models.account import Activity, Metric, Page
 from app.models.user import User
 
 router = APIRouter(prefix="/dashboard")

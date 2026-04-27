@@ -1,7 +1,7 @@
 <section data-panel="general" class="settings-panel rounded-xl border border-neutral-200 bg-white">
     <div class="px-6 py-4 border-b border-neutral-100">
         <h3 class="text-sm font-semibold text-neutral-900">General</h3>
-        <p class="mt-0.5 text-xs text-muted">Your name, contact email, workspace, and locale.</p>
+        <p class="mt-0.5 text-xs text-muted">Your name, contact email, account, and locale.</p>
     </div>
     <form id="form-general" class="px-6 py-6 space-y-5">
         <!-- Avatar -->
@@ -38,9 +38,9 @@
             </div>
         </div>
         <div>
-            <label class="mb-1.5 block text-xs font-medium text-neutral-700">Workspace name</label>
-            <input name="workspace_name" type="text" maxlength="100" placeholder="My workspace"
-                   value="{{ user.workspace_name or '' }}" class="settings-input">
+            <label class="mb-1.5 block text-xs font-medium text-neutral-700">Account name</label>
+            <input name="account_name" type="text" maxlength="100" placeholder="My account"
+                   value="{{ user.account_name or '' }}" class="settings-input">
             <p class="mt-1 text-xs text-muted">Shown across the dashboard and emails.</p>
         </div>
         <div>

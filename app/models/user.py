@@ -47,15 +47,15 @@ class User(Base):
     notify_marketing: Mapped[bool] = mapped_column(Boolean, default=False)
     notify_weekly_digest: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    # Workspace metadata
-    workspace_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # Account metadata
+    account_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    activities: Mapped[list["app.models.workspace.Activity"]] = relationship(back_populates="owner")
-    metrics: Mapped[list["app.models.workspace.Metric"]] = relationship(back_populates="owner")
-    pages: Mapped[list["app.models.workspace.Page"]] = relationship(back_populates="owner")
+    activities: Mapped[list["app.models.account.Activity"]] = relationship(back_populates="owner")
+    metrics: Mapped[list["app.models.account.Metric"]] = relationship(back_populates="owner")
+    pages: Mapped[list["app.models.account.Page"]] = relationship(back_populates="owner")
     sessions: Mapped[list["UserSession"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
-    api_keys: Mapped[list["app.models.workspace.ApiKey"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
+    api_keys: Mapped[list["app.models.account.ApiKey"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
 
 
 class UserSession(Base):

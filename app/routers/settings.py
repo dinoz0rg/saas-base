@@ -1,7 +1,7 @@
 """
-Settings router — full account & workspace settings backed by the User and
-ApiKey models. Renders one tabbed page (`settings.html`) and exposes JSON
-endpoints for in-page form submissions.
+Settings router — full account settings backed by the User and ApiKey models.
+Renders one tabbed page (`settings.html`) and exposes JSON endpoints for
+in-page form submissions.
 """
 import secrets
 from datetime import datetime, timezone
@@ -17,7 +17,7 @@ from app.auth import (
 )
 from app.database import get_db
 from app.models.user import User, UserSession
-from app.models.workspace import ApiKey
+from app.models.account import ApiKey
 
 router = APIRouter(prefix="/dashboard/settings")
 templates = Jinja2Templates(directory="app/templates")
@@ -89,7 +89,7 @@ def _err(msg: str, status: int = 400):
 async def save_general(
     display_name: str = Form(...),
     email: str = Form(...),
-    workspace_name: str = Form(""),
+    account_name: str = Form(""),
     bio: str = Form(""),
     language: str = Form("en"),
     timezone: str = Form("UTC"),
@@ -115,7 +115,7 @@ async def save_general(
 
     user.display_name = display_name
     user.email = email
-    user.workspace_name = workspace_name.strip() or None
+    user.account_name = account_name.strip() or None
     user.bio = (bio or "").strip()[:1000] or None
     user.language = language
     user.timezone = timezone

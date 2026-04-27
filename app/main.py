@@ -23,7 +23,7 @@ NEW_USER_COLUMNS = [
     ("notify_security", "BOOLEAN DEFAULT 1 NOT NULL"),
     ("notify_marketing", "BOOLEAN DEFAULT 0 NOT NULL"),
     ("notify_weekly_digest", "BOOLEAN DEFAULT 1 NOT NULL"),
-    ("workspace_name", "VARCHAR(100)"),
+    ("account_name", "VARCHAR(100)"),
     ("bio", "TEXT"),
 ]
 
@@ -33,6 +33,11 @@ async def _migrate_sqlite(conn) -> None:
     existing = {row[1] for row in res.fetchall()}
     if not existing:
         return  # table not created yet — create_all will do it
+    # Rename legacy `workspace_name` → `account_name` if upgrading an old dev DB.
+    if "workspace_name" in existing and "account_name" not in existing:
+        await conn.execute(text("ALTER TABLE users RENAME COLUMN workspace_name TO account_name"))
+        existing.discard("workspace_name")
+        existing.add("account_name")
     for col, ddl in NEW_USER_COLUMNS:
         if col not in existing:
             await conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {ddl}"))
