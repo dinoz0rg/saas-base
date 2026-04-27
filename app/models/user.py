@@ -52,8 +52,6 @@ class User(Base):
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     activities: Mapped[list["app.models.account.Activity"]] = relationship(back_populates="owner")
-    metrics: Mapped[list["app.models.account.Metric"]] = relationship(back_populates="owner")
-    pages: Mapped[list["app.models.account.Page"]] = relationship(back_populates="owner")
     sessions: Mapped[list["UserSession"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
     api_keys: Mapped[list["app.models.account.ApiKey"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
 

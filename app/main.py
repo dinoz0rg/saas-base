@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.database import engine, Base
-from app.routers import auth, pages, dashboard, board, api, settings as settings_router
+from app.routers import auth, pages, dashboard, api, board, admin, settings as settings_router
 
 
 # ── Lightweight SQLite migrations ────────────────────────────────────────────
@@ -25,6 +25,7 @@ NEW_USER_COLUMNS = [
     ("notify_weekly_digest", "BOOLEAN DEFAULT 1 NOT NULL"),
     ("account_name", "VARCHAR(100)"),
     ("bio", "TEXT"),
+    ("is_admin", "BOOLEAN DEFAULT 0 NOT NULL"),
 ]
 
 
@@ -41,6 +42,16 @@ async def _migrate_sqlite(conn) -> None:
     for col, ddl in NEW_USER_COLUMNS:
         if col not in existing:
             await conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {ddl}"))
+
+    # Drop legacy ActivityType rows (e.g. PAGE_VIEW) that no longer exist in
+    # the trimmed enum, otherwise SQLAlchemy raises LookupError on read.
+    try:
+        await conn.execute(text(
+            "DELETE FROM activities WHERE action NOT IN "
+            "('LOGIN','SIGNUP','SETTINGS_CHANGE','API_CALL')"
+        ))
+    except Exception:
+        pass
 
 
 @asynccontextmanager
@@ -63,5 +74,6 @@ app.include_router(auth.router)
 app.include_router(pages.router)
 app.include_router(dashboard.router)
 app.include_router(settings_router.router)
-app.include_router(board.router)
 app.include_router(api.router)
+app.include_router(board.router)
+app.include_router(admin.router)

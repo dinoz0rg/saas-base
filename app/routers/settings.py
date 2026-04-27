@@ -49,7 +49,7 @@ async def settings_page(
 ):
     tab = request.query_params.get("tab", "general")
     if tab not in {"general", "appearance", "notifications", "security",
-                   "sessions", "api-keys", "billing", "danger"}:
+                   "sessions", "api-keys", "danger"}:
         tab = "general"
 
     keys_res = await db.execute(
@@ -234,19 +234,6 @@ async def revoke_api_key(
     return _ok()
 
 
-# ── Billing (mock) ──────────────────────────────────────────────────────────
-
-@router.post("/billing/subscribe")
-async def subscribe(
-    plan: str = Form(...),
-    user: User = Depends(require_user),
-    db: AsyncSession = Depends(get_db),
-):
-    if plan not in {"free", "pro", "enterprise"}:
-        return _err("Unknown plan.")
-    user.subscription_tier = plan
-    await db.flush()
-    return _ok({"plan": plan})
 
 
 # ── Danger zone ─────────────────────────────────────────────────────────────

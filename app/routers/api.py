@@ -6,14 +6,17 @@ from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_admin, require_user
+from app.auth import require_user
 from app.config import settings
 from app.database import get_db
-from app.models.issue import Issue, IssueStatus, IssuePriority
 from app.models.chat import ChatSession
+from app.models.issue import Issue, IssueStatus, IssuePriority
 from app.models.user import User
 
 router = APIRouter(prefix="/api", tags=["api"])
+
+
+# ── Issues (Board) ──────────────────────────────────────────────────
 
 
 class IssueCreate(BaseModel):
@@ -55,7 +58,7 @@ def _issue_dict(issue: Issue) -> dict:
 @router.get("/issues")
 async def list_issues(
     status: IssueStatus | None = None,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ):
     q = select(Issue).order_by(Issue.sort_order, Issue.created_at.desc())
@@ -68,7 +71,7 @@ async def list_issues(
 @router.get("/issues/{issue_id}")
 async def get_issue(
     issue_id: str,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Issue).where(Issue.id == issue_id))
@@ -81,7 +84,7 @@ async def get_issue(
 @router.post("/issues", status_code=201)
 async def create_issue(
     data: IssueCreate,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ):
     count = await db.scalar(select(func.count()).select_from(Issue))
@@ -106,7 +109,7 @@ async def create_issue(
 async def update_issue(
     issue_id: str,
     data: IssueUpdate,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Issue).where(Issue.id == issue_id))
@@ -124,7 +127,7 @@ async def update_issue(
 @router.delete("/issues/{issue_id}", status_code=204)
 async def delete_issue(
     issue_id: str,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Issue).where(Issue.id == issue_id))

@@ -33,9 +33,12 @@ async def landing(request: Request, user: User | None = Depends(get_current_user
 
 @router.get("/pricing", response_class=HTMLResponse)
 async def pricing(request: Request, user: User | None = Depends(get_current_user)):
-    if user:
-        return RedirectResponse(url="/dashboard/pricing", status_code=303)
-    return templates.TemplateResponse("pricing.html", {"request": request, "user": user})
+    from app.services.plans import PLANS
+    return templates.TemplateResponse("pricing.html", {
+        "request": request, "user": user, "plans": PLANS,
+    })
+
+
 
 
 @router.get("/profile")

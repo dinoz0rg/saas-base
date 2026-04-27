@@ -1,6 +1,6 @@
 /**
  * Settings page logic — tab switching, form submission, sessions list,
- * API keys CRUD, billing change, and account deletion.
+ * API keys CRUD, and account deletion.
  */
 (function () {
     'use strict';
@@ -258,26 +258,6 @@
         });
     }
 
-    // ── Billing ─────────────────────────────────────────────────────────────
-    document.querySelectorAll('.plan-select').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            if (btn.disabled) return;
-            const card = btn.closest('.plan-card');
-            const plan = card.dataset.plan;
-            if (!confirm(`Switch to the ${plan} plan?`)) return;
-            try {
-                const fd = new FormData();
-                fd.append('plan', plan);
-                const res = await fetch('/dashboard/settings/billing/subscribe', { method: 'POST', body: fd });
-                const data = await res.json();
-                if (!data.ok) throw new Error(data.error || 'Failed');
-                showToast('Plan updated.', 'success');
-                location.reload();
-            } catch (err) {
-                showToast(err.message, 'destructive');
-            }
-        });
-    });
 
     // ── Avatar upload ───────────────────────────────────────────────────────
     const avatarInput = document.getElementById('avatar-input');

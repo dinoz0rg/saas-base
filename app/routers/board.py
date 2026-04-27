@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_admin
+from app.auth import require_user
 from app.database import get_db
 from app.models.issue import Issue, IssueStatus
 from app.models.user import User
@@ -16,7 +16,7 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("")
 async def board(
     request: Request,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ):
     board_data = {}

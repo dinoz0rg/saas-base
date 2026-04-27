@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Subscription{% endblock %}
+
+{% block body %}
+<div class="flex h-screen w-full">
+    {% include "components/sidebar.html" %}
+    <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <button id="sidebar-toggle" class="fixed top-3 left-3 z-40 p-1.5 bg-white border border-border rounded-lg shadow-sm hover:bg-neutral-50 lg:hidden hidden" onclick="toggleSidebar()">
+        <svg class="w-4 h-4 text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
+        </svg>
+    </button>
+
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden my-2 mr-2 rounded-xl bg-white border border-border max-lg:ml-2">
+        <header class="h-11 border-b border-border flex items-center justify-between px-4 shrink-0 rounded-t-xl">
+            <div class="flex items-center gap-2">
+                <h1 class="text-sm font-medium text-neutral-900">Subscription</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-2xs text-muted">{{ user.display_name }}</span>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-6 bg-neutral-50/50">
+            <div class="max-w-5xl mx-auto space-y-6">
+
+                <!-- Current plan -->
+                <section class="bg-white rounded-xl border border-neutral-200">
+                    <div class="px-6 py-4 border-b border-neutral-100 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>
+                        <h3 class="text-sm font-semibold text-neutral-900">Current subscription</h3>
+                    </div>
+                    <div class="px-6 py-6">
+                        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                            <div>
+                                <p class="text-xs text-muted">Current plan</p>
+                                <div class="mt-1 flex items-baseline gap-2">
+                                    <span class="text-2xl font-semibold text-neutral-900">{{ current_plan.name if current_plan else subscription.plan|capitalize }}</span>
+                                    {% if current_plan and not current_plan.is_free %}
+                                    <span class="text-sm text-muted">
+                                        ${{ current_plan.price_yearly if subscription.interval == 'yearly' else current_plan.price_monthly }}
+                                        / {{ 'year' if subscription.interval == 'yearly' else 'month' }}
+                                    </span>
+                                    {% elif current_plan and current_plan.is_free %}
+                                    <span class="text-sm text-muted">Free plan</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                {% if subscription.cancel_at_period_end %}
+                                    <span class="text-2xs px-2 py-1 rounded bg-orange-50 text-orange-600 font-medium">Cancels at period end</span>
+                                {% else %}
+                                    <span class="text-2xs px-2 py-1 rounded bg-emerald-50 text-emerald-600 font-medium capitalize">{{ subscription.status }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {% if subscription.current_period_end %}
+                            <div class="flex items-center gap-3 rounded-md p-3 bg-neutral-50/70 border border-neutral-100">
+                                <svg class="w-4 h-4 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0V11.25h18v7.5"/></svg>
+                                <div>
+                                    <p class="text-xs font-medium text-neutral-900">
+                                        {{ 'Cancels on' if subscription.cancel_at_period_end else 'Next renewal' }}
+                                    </p>
+                                    <p class="text-xs text-muted">{{ subscription.current_period_end.strftime('%b %d, %Y') }}</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                            <div class="flex items-center gap-3 rounded-md p-3 bg-neutral-50/70 border border-neutral-100">
+                                <svg class="w-4 h-4 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>
+                                <div>
+                                    <p class="text-xs font-medium text-neutral-900">Billing interval</p>
+                                    <p class="text-xs text-muted capitalize">{{ subscription.interval }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if current_plan and not current_plan.is_free and not subscription.cancel_at_period_end %}
+                        <div class="mt-5">
+                            <button id="cancel-sub" class="text-xs px-3 py-2 rounded-md border border-neutral-200 text-neutral-700 hover:bg-neutral-50">
+                                Cancel subscription
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </section>
+
+                <!-- Change plan -->
+                <section class="bg-white rounded-xl border border-neutral-200">
+                    <div class="px-6 py-4 border-b border-neutral-100 flex items-center justify-between gap-3">
+                        <div>
+                            <h3 class="text-sm font-semibold text-neutral-900">Change plan</h3>
+                            <p class="text-xs text-muted mt-0.5">Switch tiers anytime — prorated in your next invoice (mock).</p>
+                        </div>
+                        <div class="inline-flex items-center rounded-lg border border-neutral-200 p-0.5 text-xs">
+                            <button type="button" data-interval="monthly" class="interval-toggle px-2.5 py-1 rounded-md transition {% if subscription.interval != 'yearly' %}bg-neutral-900 text-white{% else %}text-neutral-600{% endif %}">Monthly</button>
+                            <button type="button" data-interval="yearly" class="interval-toggle px-2.5 py-1 rounded-md transition {% if subscription.interval == 'yearly' %}bg-neutral-900 text-white{% else %}text-neutral-600{% endif %}">Yearly</button>
+                        </div>
+                    </div>
+                    <div class="px-6 py-6">
+                        <div id="plans-grid" class="grid gap-3 md:grid-cols-3">
+                            {% for p in plans %}
+                            <div class="plan-card rounded-xl border-2 {% if subscription.plan == p.slug %}border-neutral-900 bg-neutral-900 text-white{% else %}border-neutral-200 bg-white{% endif %} p-5 flex flex-col"
+                                 data-plan="{{ p.slug }}"
+                                 data-price-monthly="{{ p.price_monthly }}"
+                                 data-price-yearly="{{ p.price_yearly }}">
+                                <div class="flex items-baseline justify-between">
+                                    <div class="text-sm font-semibold">{{ p.name }}</div>
+                                    {% if subscription.plan == p.slug %}
+                                        <span class="rounded-full bg-white/20 px-2 py-0.5 text-2xs font-medium">Current</span>
+                                    {% elif p.is_popular %}
+                                        <span class="rounded-full bg-blue-50 px-2 py-0.5 text-2xs font-medium text-blue-600">Popular</span>
+                                    {% endif %}
+                                </div>
+                                <p class="mt-1 text-xs {% if subscription.plan == p.slug %}opacity-80{% else %}text-muted{% endif %}">{{ p.tagline }}</p>
+                                <div class="mt-3 flex items-baseline gap-1">
+                                    <span class="text-2xl font-bold plan-price">${{ p.price_monthly }}</span>
+                                    <span class="text-xs {% if subscription.plan == p.slug %}opacity-70{% else %}text-muted{% endif %} plan-period">/month</span>
+                                </div>
+                                <ul class="mt-4 space-y-1.5 text-xs flex-1 {% if subscription.plan == p.slug %}opacity-90{% else %}text-neutral-700{% endif %}">
+                                    {% for f in p.features %}
+                                    <li class="flex items-start gap-2">
+                                        <svg class="w-3.5 h-3.5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                                        <span>{{ f }}</span>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                                <button type="button" data-plan="{{ p.slug }}" class="plan-select mt-5 rounded-lg px-3 py-2 text-xs font-medium transition
+                                    {% if subscription.plan == p.slug %}bg-white/20 text-white cursor-default{% else %}bg-neutral-900 text-white hover:bg-neutral-800{% endif %}"
+                                    {% if subscription.plan == p.slug %}disabled{% endif %}>
+                                    {% if subscription.plan == p.slug %}Active{% else %}Switch to {{ p.name }}{% endif %}
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <p class="mt-5 text-2xs text-muted">Payment processing is in demo mode. No real charges are made.</p>
+                    </div>
+                </section>
+
+                <!-- Invoice history -->
+                <section class="bg-white rounded-xl border border-neutral-200">
+                    <div class="px-6 py-4 border-b border-neutral-100 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        <h3 class="text-sm font-semibold text-neutral-900">Invoice history</h3>
+                    </div>
+                    {% if invoices %}
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs">
+                            <thead>
+                                <tr class="text-left text-2xs uppercase tracking-wider text-muted border-b border-neutral-100">
+                                    <th class="px-6 py-3 font-medium">Invoice</th>
+                                    <th class="px-6 py-3 font-medium">Date</th>
+                                    <th class="px-6 py-3 font-medium">Plan</th>
+                                    <th class="px-6 py-3 font-medium">Amount</th>
+                                    <th class="px-6 py-3 font-medium">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-neutral-50">
+                                {% for inv in invoices %}
+                                <tr>
+                                    <td class="px-6 py-3 font-mono text-neutral-700">{{ inv.number }}</td>
+                                    <td class="px-6 py-3 text-muted">{{ inv.issued_at.strftime('%b %d, %Y') }}</td>
+                                    <td class="px-6 py-3 text-neutral-700 capitalize">{{ inv.plan }} · {{ inv.interval }}</td>
+                                    <td class="px-6 py-3 text-neutral-900 font-medium">${{ '%.2f'|format(inv.amount_cents / 100) }}</td>
+                                    <td class="px-6 py-3">
+                                        <span class="text-2xs px-2 py-0.5 rounded font-medium
+                                        {% if inv.status == 'paid' %}bg-emerald-50 text-emerald-600
+                                        {% elif inv.status == 'open' %}bg-amber-50 text-amber-600
+                                        {% else %}bg-neutral-100 text-neutral-600{% endif %}">{{ inv.status|capitalize }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="px-6 py-12 text-center">
+                        <p class="text-sm text-muted">No invoices yet</p>
+                        <p class="text-xs text-neutral-400 mt-1">Your payment history will appear here once you upgrade.</p>
+                    </div>
+                    {% endif %}
+                </section>
+
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const grid = document.getElementById('plans-grid');
+    if (!grid) return;
+    const intervalBtns = document.querySelectorAll('.interval-toggle');
+    let interval = "{{ subscription.interval }}";
+
+    function applyInterval() {
+        intervalBtns.forEach(b => {
+            const active = b.dataset.interval === interval;
+            b.classList.toggle('bg-neutral-900', active);
+            b.classList.toggle('text-white', active);
+            b.classList.toggle('text-neutral-600', !active);
+        });
+        grid.querySelectorAll('.plan-card').forEach(card => {
+            const monthly = Number(card.dataset.priceMonthly);
+            const yearly = Number(card.dataset.priceYearly);
+            const price = interval === 'yearly' ? yearly : monthly;
+            card.querySelector('.plan-price').textContent = `$${price}`;
+            card.querySelector('.plan-period').textContent = interval === 'yearly' ? '/year' : '/month';
+        });
+    }
+
+    intervalBtns.forEach(b => b.addEventListener('click', () => {
+        interval = b.dataset.interval;
+        applyInterval();
+    }));
+
+    grid.querySelectorAll('.plan-select').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (btn.disabled) return;
+            const plan = btn.dataset.plan;
+            btn.disabled = true;
+            btn.textContent = 'Switching…';
+            const fd = new FormData();
+            fd.append('plan', plan);
+            fd.append('interval', interval);
+            const res = await fetch('/dashboard/subscriptions/change', { method: 'POST', body: fd });
+            if (res.ok) {
+                window.location.reload();
+            } else {
+                btn.disabled = false;
+                btn.textContent = 'Try again';
+            }
+        });
+    });
+
+    const cancelBtn = document.getElementById('cancel-sub');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', async () => {
+            if (!confirm('Cancel your subscription at the end of the current period?')) return;
+            cancelBtn.disabled = true;
+            cancelBtn.textContent = 'Cancelling…';
+            const res = await fetch('/dashboard/subscriptions/cancel', { method: 'POST' });
+            if (res.ok) window.location.reload();
+            else { cancelBtn.disabled = false; cancelBtn.textContent = 'Cancel subscription'; }
+        });
+    }
+})();
+</script>
+{% endblock %}
