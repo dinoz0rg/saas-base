@@ -253,10 +253,22 @@ document.querySelectorAll('.drop-zone').forEach(zone => {
             } else {
                 zone.appendChild(draggedCard);
             }
+            // RGB outline trace marking the moved card
+            const movedCard = draggedCard;
+            movedCard.classList.remove('moved-rgb');
+            // Force reflow so the animation restarts if the same card is moved again
+            void movedCard.offsetWidth;
+            movedCard.classList.add('moved-rgb');
+            const onTraceEnd = (ev) => {
+                if (ev.animationName !== 'rgbTrace') return;
+                movedCard.classList.remove('moved-rgb');
+                movedCard.removeEventListener('animationend', onTraceEnd);
+            };
+            movedCard.addEventListener('animationend', onTraceEnd);
             requestAnimationFrame(() => {
                 setTimeout(() => {
-                    draggedCard.style.transform = '';
-                    draggedCard.style.opacity = '';
+                    movedCard.style.transform = '';
+                    movedCard.style.opacity = '';
                 }, 50);
             });
         }

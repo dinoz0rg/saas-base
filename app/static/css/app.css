@@ -127,6 +127,53 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
     border-radius: 8px;
 }
 
+/* RGB outline trace on the card that was just moved */
+@property --rgb-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+@keyframes rgbTrace {
+    0%   { --rgb-angle: 180deg; opacity: 1; }
+    92%  { opacity: 1; }
+    100% { --rgb-angle: 540deg; opacity: 0; }
+}
+.issue-card.moved-rgb {
+    position: relative;
+    isolation: isolate;
+}
+.issue-card.moved-rgb::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 10px;
+    padding: 2px;
+    background: conic-gradient(from var(--rgb-angle, 0deg),
+        transparent 0deg,
+        #ff0040 25deg,
+        #ff8a00 55deg,
+        #ffe600 85deg,
+        #00ff66 115deg,
+        #00d4ff 145deg,
+        #2b6cff 175deg,
+        #c800ff 205deg,
+        transparent 235deg);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    filter: drop-shadow(0 0 4px rgba(120, 80, 255, 0.55));
+    pointer-events: none;
+    z-index: 1;
+    animation: rgbTrace 2.6s linear forwards;
+}
+/* Fallback for browsers without @property support: still show a colorful pulse */
+@supports not (background: conic-gradient(from var(--rgb-angle), red, blue)) {
+    .issue-card.moved-rgb::after {
+        background: linear-gradient(90deg, #ff0040, #ffe600, #00ff66, #00d4ff, #2b6cff, #c800ff);
+    }
+}
+
 /* ── Dropdown panel ── */
 .dropdown-panel {
     position: absolute;
